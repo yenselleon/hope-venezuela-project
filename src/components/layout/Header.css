@@ -1,0 +1,26 @@
+/* ─── Header.css ───────────────────────────────────────────────────────────────
+   Estilos específicos del Header de la Landing Page.
+   Controlan la revelación de los CTAs al hacer scroll past el Hero.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Header CTAs: ocultos por defecto, revelados tras scroll */
+.header-cta {
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: .28s ease;
+}
+
+body.is-past-hero .header-cta {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (max-width: 860px) {
+  .header-cta {
+    display: none !important;
+  }
+}

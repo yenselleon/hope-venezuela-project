@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Colores primarios */
+  --color-navy: #003366;
+  --color-navy-dark: #00284f;
+  --color-navy-hover: #00284f;
+
+  /* Texto */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-tertiary: #6B7280;
+  --color-text-muted: #9a9384;
+
+  /* Acentos */
+  --color-wine: #5C1F3A;
+  --color-green: #4A5D3A;
+  --color-green-dark: #3a4a2e;
+  --color-amber: #C79A3A;
+
+  /* Bandera venezolana */
+  --color-flag-yellow: #FCD116;
+  --color-flag-blue: #00247D;
+  --color-flag-red: #CF142B;
+
+  /* Superficies */
+  --color-bg: #faf7f2;
+  --color-card: #FFFFFF;
+  --color-card-border: #efe7d8;
+  --color-card-border-light: #f0eadf;
+  --color-input-border: #e2ddd0;
+  --color-surface-light: #F3F4F6;
+  --color-surface-warm: #f6f4ee;
+  --color-info-bg: #eef3f8;
+  --color-tab-bg: #eee7d9;
+  --color-green-bg: #eef2ea;
+
+  /* Tipografía */
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Border radius */
+  --radius-sm: 7px;
+  --radius-md: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+}
+
+/* ─── Resets Globales ──────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #111827;
+  background: #faf7f2;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: #003366;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #00284f;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ─── Animaciones Compartidas ──────────────────────────────────────────────── */
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

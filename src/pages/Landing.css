@@ -1,0 +1,32 @@
+/* ─── Landing.css ──────────────────────────────────────────────────────────────
+   Estilos específicos de la Landing Page.
+   Controlan el float-bar móvil que aparece tras hacer scroll past el Hero.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Barra flotante de CTAs (móvil) */
+.float-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  gap: 10px;
+  padding: 11px 16px calc(11px + env(safe-area-inset-bottom));
+  background: rgba(250, 247, 242, .94);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #ece3d4;
+  box-shadow: 0 -8px 24px rgba(60, 50, 30, .10);
+  transform: translateY(130%);
+  transition: transform .32s cubic-bezier(.22, 1, .36, 1);
+}
+
+body.is-past-hero .float-bar {
+  transform: translateY(0);
+}
+
+@media (min-width: 861px) {
+  .float-bar {
+    display: none !important;
+  }
+}
