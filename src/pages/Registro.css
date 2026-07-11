@@ -1,0 +1,190 @@
+/* ─── Registro.css ─────────────────────────────────────────────────────────────
+   Estilos específicos del formulario multi-step de registro de voluntarios.
+   Todas estas clases son consumidas exclusivamente por Registro.jsx.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Inputs y Selectores */
+.fld {
+  height: 48px;
+  border: 1.5px solid #e2ddd0;
+  border-radius: 11px;
+  padding: 0 14px;
+  font: 500 15px Inter, system-ui, sans-serif;
+  color: #111827;
+  background: #fff;
+  width: 100%;
+  transition: .15s;
+}
+
+.fld:focus {
+  outline: none;
+  border-color: #003366;
+  box-shadow: 0 0 0 3px rgba(0,51,102,.12);
+}
+
+select.fld {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+.fld.bad {
+  border-color: #CF142B;
+}
+
+/* Labels y Requeridos */
+.lbl {
+  font: 600 12px Inter, system-ui, sans-serif;
+  color: #374151;
+  margin-bottom: 7px;
+  display: block;
+}
+
+.req {
+  color: #CF142B;
+}
+
+/* Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 15px;
+  border: 1.5px solid #e2ddd0;
+  border-radius: 11px;
+  font: 600 13px Inter, system-ui, sans-serif;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: .15s;
+}
+
+.chip:hover {
+  border-color: #c9c2b2;
+}
+
+.chip.on {
+  border-color: #003366;
+  background: #eef3f8;
+  color: #003366;
+}
+
+.seg {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Tiles */
+.tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px 16px;
+  border: 1.5px solid #e2ddd0;
+  border-radius: 13px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: .15s;
+}
+
+.tile:hover {
+  border-color: #c9c2b2;
+}
+
+.tile.on {
+  border-color: #003366;
+  background: #f7fafd;
+}
+
+/* Tick (checkbox visual) */
+.tick {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid #cbc5b8;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .15s;
+}
+
+.tile.on .tick, .chip.on .tick {
+  background: #003366;
+  border-color: #003366;
+}
+
+.tick svg {
+  opacity: 0;
+  transition: .15s;
+}
+
+.tile.on .tick svg, .chip.on .tick svg {
+  opacity: 1;
+}
+
+/* Secciones Desplegables */
+.sub {
+  margin-top: 12px;
+  padding: 15px;
+  border-radius: 11px;
+  background: #f0f5fa;
+  border: 1px solid #d6e2ee;
+  display: none;
+}
+
+.sub.on {
+  display: block;
+  animation: fade .25s ease;
+}
+
+/* Botones */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 26px;
+  border-radius: 12px;
+  font: 700 15px Inter, system-ui, sans-serif;
+  cursor: pointer;
+  border: 0;
+  transition: .15s;
+}
+
+.btn-pri {
+  background: #003366;
+  color: #fff;
+}
+
+.btn-pri:hover {
+  background: #00284f;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #374151;
+  border: 1.5px solid #d7d2c6;
+}
+
+.btn-ghost:hover {
+  background: #f1ede3;
+}
+
+/* Errores */
+.err {
+  color: #CF142B;
+  font: 500 12px Inter, system-ui, sans-serif;
+  margin-top: 6px;
+  display: none;
+}
+
+.err.on {
+  display: block;
+}
