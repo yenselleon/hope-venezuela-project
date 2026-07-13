@@ -51,7 +51,9 @@ export function buildStep1Summary(data) {
   if (idParts.length) parts.push(idParts.join(' · '));
   if (data.profesion) parts.push(data.profesion);
   if (data.telefono) parts.push(`Tel. ${formatPhone(data.telefono)}`);
-  const loc = [data.estado, data.municipio].filter(Boolean).join(' · ');
+  const loc = data.extranjero
+    ? (data.pais ? `Procedencia: ${data.pais}` : '')
+    : [data.estado, data.municipio].filter(Boolean).join(' · ');
   if (loc) parts.push(loc);
   return parts;
 }

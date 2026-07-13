@@ -29,6 +29,8 @@ function usePanelTitle(pathname) {
   const t = useI18nStore((s) => s.t);
   if (pathname.includes('/aprobacion')) return t('admin.nav.aprobacion.title');
   if (pathname.includes('/voluntarios')) return t('admin.nav.voluntarios');
+  if (pathname.includes('/mapeo')) return t('admin.nav.mapeo.title');
+  if (pathname.includes('/inventario')) return t('admin.nav.inventario');
   return 'Dashboard';
 }
 
@@ -161,12 +163,20 @@ export default function AdminLayout() {
   const currentView = useMemo(() => {
     if (location.pathname.includes('/aprobacion')) return 'aprobacion';
     if (location.pathname.includes('/voluntarios')) return 'voluntarios';
+    if (location.pathname.includes('/mapeo')) return 'mapeo';
+    if (location.pathname.includes('/inventario')) return 'inventario';
     return 'dashboard';
   }, [location.pathname]);
 
   const handleNav = useCallback(
     (view) => {
-      const routes = { dashboard: '/admin', voluntarios: '/admin/voluntarios', aprobacion: '/admin/aprobacion' };
+      const routes = {
+        dashboard: '/admin',
+        voluntarios: '/admin/voluntarios',
+        aprobacion: '/admin/aprobacion',
+        mapeo: '/admin/mapeo',
+        inventario: '/admin/inventario'
+      };
       navigate(routes[view] || '/admin');
     },
     [navigate]
@@ -213,11 +223,25 @@ export default function AdminLayout() {
           )}
         </button>
 
-        <div className="admin-nav dis">
+        <button
+          className={`admin-nav${currentView === 'mapeo' ? ' on' : ''}`}
+          onClick={() => handleNav('mapeo')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+            <line x1="9" y1="3" x2="9" y2="18" />
+            <line x1="15" y1="6" x2="15" y2="21" />
+          </svg>
+          {t('admin.nav.mapeo')}
+        </button>
+
+        <button
+          className={`admin-nav${currentView === 'inventario' ? ' on' : ''}`}
+          onClick={() => handleNav('inventario')}
+        >
           <IconInventario />
           {t('admin.nav.inventario')}
-          <span className="admin-nav-phase">Fase 3</span>
-        </div>
+        </button>
 
         <div className="admin-nav dis">
           <IconPersonal />
@@ -352,10 +376,31 @@ export default function AdminLayout() {
 
               {/* Extra nav items (Fase 3 & 4) */}
               <div className="admin-mobile-menu-navs">
-                <div className="admin-mobile-menu-nav-item dis">
+                <div
+                  className="admin-mobile-menu-nav-item"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleNav('mapeo');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ width: 17, height: 17, color: '#6b7280' }}>
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+                  </svg>
+                  <span>{t('admin.nav.mapeo')}</span>
+                </div>
+                <div
+                  className="admin-mobile-menu-nav-item"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleNav('inventario');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <IconInventario />
                   <span>{t('admin.nav.inventario')}</span>
-                  <span className="admin-nav-phase">Fase 3</span>
                 </div>
                 <div className="admin-mobile-menu-nav-item dis">
                   <IconPersonal />

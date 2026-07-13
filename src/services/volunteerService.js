@@ -19,6 +19,8 @@ function mapFormToRow(formData) {
     estado: step1.estado || null,
     municipio: step1.municipio || null,
     profesion: step1.profesion?.trim(),
+    extranjero: !!step1.extranjero,
+    pais: step1.pais?.trim() || null,
 
     // Step 2
     areas: step2.areas || [],
