@@ -54,6 +54,7 @@ export const inventarioService = {
         unidad: item.unidad,
         cantidad: parseInt(item.cantidad, 10) || 0,
         stock_minimo: parseInt(item.stock_minimo, 10) || 10,
+        lote: item.lote || 'L-1001',
         fecha_vencimiento: item.fecha_vencimiento || null,
       })
       .select()

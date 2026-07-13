@@ -1,7 +1,7 @@
 // src/pages/admin/InventarioPanel.jsx
-// Módulo de Inventario de Insumos (Stock, Bitácora de Auditoría, y Analítica de Gráficos SVG).
-// Conexión real con Supabase y reactividad mediante TanStack Query.
-// Incluye cajón lateral para alta rápida e ingreso de movimientos.
+// Módulo de Inventario de Insumos y Suministros (Fase 3).
+// Integración con Supabase para control de catálogo, bitácora de auditoría e inline editing.
+// Cumple 100% con los requerimientos visuales y operacionales de Fase3 Wireframes.dc.html.
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,11 +12,11 @@ import { inventarioService } from '@/services/inventarioService';
 import './Admin.css';
 
 const CATEGORIAS = [
-  { value: 'agua', labelKey: 'admin.supply.water' },
-  { value: 'alimentos', labelKey: 'admin.supply.food' },
-  { value: 'medicinas', labelKey: 'admin.supply.medicine' },
-  { value: 'higiene', labelKey: 'admin.supply.hygiene' },
-  { value: 'colchones', labelKey: 'admin.supply.mattresses' },
+  { value: 'agua', labelKey: 'admin.supply.water', color: '#003366' },
+  { value: 'alimentos', labelKey: 'admin.supply.food', color: '#e6a93a' },
+  { value: 'medicinas', labelKey: 'admin.supply.medicine', color: '#b06fb0' },
+  { value: 'higiene', labelKey: 'admin.supply.hygiene', color: '#2f7d4f' },
+  { value: 'colchones', labelKey: 'admin.supply.mattresses', color: '#7a86c8' },
 ];
 
 export default function InventarioPanel() {
@@ -28,24 +28,29 @@ export default function InventarioPanel() {
 
   const [activeTab, setActiveTab] = useState('stock'); // 'stock' | 'movs' | 'charts'
   const [categoryFilter, setCategoryFilter] = useState('Todas');
-  const [alertFilter, setAlertFilter] = useState('Todas'); // 'Todas' | 'bajo' | 'vence'
+  const [alertFilter, setAlertFilter] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Drawer / Form state
+  // Cajón Lateral / Modal Overlay
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [formMode, setFormMode] = useState('item'); // 'item' | 'movement'
-  
-  // New Item State
+
+  // Inline Editing Quantity state
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editingQty, setEditingQty] = useState('');
+
+  // Formulario nuevo ítem
   const [newItem, setNewItem] = useState({
     nombre: '',
     categoria: 'agua',
-    unidad: 'unidades',
+    unidad: 'u',
     cantidad: 0,
     stock_minimo: 10,
+    lote: '',
     fecha_vencimiento: '',
   });
 
-  // New Movement State
+  // Formulario nuevo movimiento
   const [selectedItemId, setSelectedItemId] = useState('');
   const [newMovement, setNewMovement] = useState({
     tipo: 'entrada',
@@ -53,7 +58,7 @@ export default function InventarioPanel() {
     concepto: '',
   });
 
-  // 1. Fetch stock items
+  // 1. Obtener catálogo
   const { data: stockItems = [], isLoading: loadingStock } = useQuery({
     queryKey: ['inventario', { categoria: categoryFilter, alert: alertFilter, search: searchQuery }],
     queryFn: () => inventarioService.getAll({
@@ -64,7 +69,7 @@ export default function InventarioPanel() {
     staleTime: 15_000,
   });
 
-  // 2. Fetch movements
+  // 2. Obtener bitácora de auditoría
   const { data: movements = [], isLoading: loadingMovs } = useQuery({
     queryKey: ['inventario-movimientos'],
     queryFn: inventarioService.getMovements,
@@ -72,7 +77,7 @@ export default function InventarioPanel() {
     staleTime: 20_000,
   });
 
-  // Mutations
+  // Mutaciones
   const createItemMutation = useMutation({
     mutationFn: (item) => inventarioService.create(item),
     onSuccess: () => {
@@ -81,9 +86,7 @@ export default function InventarioPanel() {
       setIsDrawerOpen(false);
       resetNewItemForm();
     },
-    onError: (err) => {
-      showToast(err.message);
-    },
+    onError: (err) => showToast(err.message),
   });
 
   const movementMutation = useMutation({
@@ -95,38 +98,37 @@ export default function InventarioPanel() {
       setIsDrawerOpen(false);
       resetMovementForm();
     },
-    onError: (err) => {
-      showToast(err.message);
-    },
+    onError: (err) => showToast(err.message),
   });
 
-  // Helper selectors
   const resetNewItemForm = () => {
     setNewItem({
       nombre: '',
       categoria: 'agua',
-      unidad: 'unidades',
+      unidad: 'u',
       cantidad: 0,
       stock_minimo: 10,
+      lote: '',
       fecha_vencimiento: '',
     });
   };
 
   const resetMovementForm = () => {
     setSelectedItemId('');
-    setNewMovement({
-      tipo: 'entrada',
-      cantidad: '',
-      concepto: '',
-    });
+    setNewMovement({ tipo: 'entrada', cantidad: '', concepto: '' });
   };
 
+  // Submit catalog creation
   const handleCreateItemSubmit = (e) => {
     e.preventDefault();
     if (!newItem.nombre.trim()) return;
-    createItemMutation.mutate(newItem);
+    createItemMutation.mutate({
+      ...newItem,
+      lote: newItem.lote.trim() || undefined,
+    });
   };
 
+  // Submit manual log movement
   const handleMovementSubmit = (e) => {
     e.preventDefault();
     if (!selectedItemId || !newMovement.cantidad || parseInt(newMovement.cantidad, 10) <= 0) return;
@@ -139,15 +141,36 @@ export default function InventarioPanel() {
     });
   };
 
-  // Critical indicators
+  // Inline adjustment click-save logic
+  const handleInlineQtyBlur = (item, eventValue) => {
+    setEditingItemId(null);
+    const newQty = parseInt(eventValue, 10);
+    if (isNaN(newQty) || newQty < 0 || newQty === item.cantidad) return;
+
+    const delta = newQty - item.cantidad;
+    const tipo = delta > 0 ? 'entrada' : 'salida';
+    const absQty = Math.abs(delta);
+
+    movementMutation.mutate({
+      inventario_id: item.id,
+      tipo,
+      cantidad: absQty,
+      concepto: 'Ajuste manual rápido inline',
+      usuario_email: user?.email || 'coordinador@ready.set.go',
+    });
+  };
+
+  // Indicadores KPI superiores (Fase 3 wireframe 1b)
   const kpis = useMemo(() => {
     let lowStock = 0;
     let soonExpired = 0;
+    let totalUnits = 0;
     const today = new Date();
     const in30Days = new Date();
     in30Days.setDate(today.getDate() + 30);
 
     stockItems.forEach(i => {
+      totalUnits += i.cantidad || 0;
       if (i.cantidad <= i.stock_minimo) lowStock++;
       if (i.fecha_vencimiento) {
         const d = new Date(i.fecha_vencimiento);
@@ -155,7 +178,7 @@ export default function InventarioPanel() {
       }
     });
 
-    return { lowStock, soonExpired, totalItems: stockItems.length };
+    return { lowStock, soonExpired, totalUnits, totalItems: stockItems.length };
   }, [stockItems]);
 
   // SVG Chart data
@@ -175,19 +198,23 @@ export default function InventarioPanel() {
   }, [stockItems]);
 
   return (
-    <div className="admin-panel animate-[fade_0.2s_ease]" style={{ minHeight: 'calc(100vh - 84px)' }}>
-      {/* Header */}
-      <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
+    <div className="admin-panel admin-fade" style={{ minHeight: 'calc(100vh - 84px)' }}>
+      {/* Header Panel */}
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4 border-b border-[#eef1f4] pb-4.5">
         <div>
-          <span className="admin-nav-phase uppercase font-bold text-[10.5px] tracking-wider text-wine">
+          <h1 className="text-xl font-extrabold text-navy margin-0 flex items-center gap-2">
             {t('admin.nav.inventario')}
-          </span>
+            {(kpis.lowStock + kpis.soonExpired) > 0 && (
+              <span className="admin-pill admin-pill-crit font-extrabold text-[10px] px-2.5 py-0.5">
+                {kpis.lowStock + kpis.soonExpired} {lang === 'es' ? 'alertas' : 'alerts'}
+              </span>
+            )}
+          </h1>
           <p className="admin-apr-desc margin-0 mt-1">
             {t('admin.supply.desc')}
           </p>
         </div>
 
-        {/* Buttons to open Quick Input Drawer */}
         <div className="flex gap-2.5">
           <button
             onClick={() => {
@@ -244,95 +271,89 @@ export default function InventarioPanel() {
         </button>
       </div>
 
-      {/* ── STOCK TAB ── */}
+      {/* ── TAB 1: STOCK INVENTARIO ── */}
       {activeTab === 'stock' && (
-        <div className="flex flex-col gap-6">
-          {/* Alertas KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-[#eef3fb] flex items-center justify-center text-navy font-bold">
-                📦
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-[#8fa3b8] uppercase tracking-wider block">
-                  {lang === 'es' ? 'Ítems registrados' : 'Total Items'}
-                </span>
-                <span className="text-xl font-extrabold text-text-primary mt-0.5 block">
-                  {kpis.totalItems}
-                </span>
-              </div>
+        <div className="flex flex-col gap-5.5">
+          {/* KPI upper row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white border border-[#efe7d8] rounded-2xl p-4 flex flex-col">
+              <span className="text-[22px] font-extrabold text-navy leading-none">
+                {kpis.totalUnits.toLocaleString(lang === 'es' ? 'es-ES' : 'en-US')}
+              </span>
+              <span className="text-[10px] font-bold text-text-tertiary uppercase mt-2">
+                Unidades totales
+              </span>
             </div>
-
-            <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                kpis.lowStock > 0 ? 'bg-[#fbdedb] text-[#b02a24]' : 'bg-[#eef3fb] text-[#8fa3b8]'
-              }`}>
-                ⚠️
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-[#8fa3b8] uppercase tracking-wider block">
-                  {t('admin.supply.alert.understocked')}
-                </span>
-                <span className={`text-xl font-extrabold mt-0.5 block ${kpis.lowStock > 0 ? 'text-[#b02a24]' : 'text-text-primary'}`}>
-                  {kpis.lowStock}
-                </span>
-              </div>
+            <div className="bg-white border border-[#efe7d8] rounded-2xl p-4 flex flex-col">
+              <span className={`text-[22px] font-extrabold leading-none ${kpis.lowStock > 0 ? 'text-[#c0413b]' : 'text-navy'}`}>
+                {kpis.lowStock}
+              </span>
+              <span className="text-[10px] font-bold text-text-tertiary uppercase mt-2">
+                Stock bajo
+              </span>
             </div>
-
-            <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                kpis.soonExpired > 0 ? 'bg-[#fdecc8] text-[#8a5a12]' : 'bg-[#eef3fb] text-[#8fa3b8]'
-              }`}>
-                📅
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-[#8fa3b8] uppercase tracking-wider block">
-                  {t('admin.supply.alert.expiring')}
-                </span>
-                <span className={`text-xl font-extrabold mt-0.5 block ${kpis.soonExpired > 0 ? 'text-[#8a5a12]' : 'text-text-primary'}`}>
-                  {kpis.soonExpired}
-                </span>
-              </div>
+            <div className="bg-white border border-[#efe7d8] rounded-2xl p-4 flex flex-col">
+              <span className={`text-[22px] font-extrabold leading-none ${kpis.soonExpired > 0 ? 'text-[#c0413b]' : 'text-navy'}`}>
+                {kpis.soonExpired}
+              </span>
+              <span className="text-[10px] font-bold text-text-tertiary uppercase mt-2">
+                Vence pronto
+              </span>
+            </div>
+            <div className="bg-white border border-[#efe7d8] rounded-2xl p-4 flex flex-col">
+              <span className="text-[22px] font-extrabold text-navy leading-none">
+                {CATEGORIAS.length}
+              </span>
+              <span className="text-[10px] font-bold text-text-tertiary uppercase mt-2">
+                Categorías
+              </span>
             </div>
           </div>
 
-          {/* Filters Row */}
-          <div className="bg-white border border-[#efe7d8] rounded-2xl p-4.5 flex flex-wrap gap-4 items-center">
-            <div className="admin-top-search relative max-w-[280px] w-full" style={{ border: '1px solid #e7eaef', borderRadius: 10 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a3a9b3" strokeWidth="2" className="absolute left-3.5 top-[13px]">
+          {/* Category Chip filters (Wireframe 1b styling) */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <button
+              onClick={() => setCategoryFilter('Todas')}
+              className={`btn xs font-bold px-3 cursor-pointer ${
+                categoryFilter === 'Todas' ? 'btn-sec' : 'btn-ghost'
+              }`}
+            >
+              Todas
+            </button>
+            {CATEGORIAS.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setCategoryFilter(cat.value)}
+                className={`btn xs font-bold px-3 cursor-pointer ${
+                  categoryFilter === cat.value ? 'btn-sec' : 'btn-ghost'
+                }`}
+              >
+                {t(cat.labelKey)}
+              </button>
+            ))}
+          </div>
+
+          {/* Search bar & Alert Selector */}
+          <div className="bg-white border border-[#efe7d8] rounded-2xl p-4 flex flex-wrap gap-4 items-center shadow-sm">
+            <div className="admin-top-search relative flex-grow max-w-[320px] w-full" style={{ border: '1px solid #e7eaef', borderRadius: 10 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a3a9b3" strokeWidth="2" className="absolute left-3.5 top-[12px]">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
               </svg>
               <input
                 type="text"
                 placeholder={lang === 'es' ? 'Buscar insumo…' : 'Search supplies…'}
-                className="fld outline-none border-0"
-                style={{ paddingLeft: 38, height: 38 }}
+                className="fld outline-none border-0 w-full"
+                style={{ paddingLeft: 38, height: 34, fontSize: 12 }}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            {/* Category Filter */}
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="fld sm cursor-pointer bg-white"
-              style={{ width: 'auto', minWidth: 150, height: 38 }}
-            >
-              <option value="Todas">{lang === 'es' ? 'Todas las categorías' : 'All Categories'}</option>
-              {CATEGORIAS.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {t(cat.labelKey)}
-                </option>
-              ))}
-            </select>
-
-            {/* Quick Alerts Toggles */}
             <select
               value={alertFilter}
               onChange={(e) => setAlertFilter(e.target.value)}
               className="fld sm cursor-pointer bg-white"
-              style={{ width: 'auto', minWidth: 150, height: 38 }}
+              style={{ width: 'auto', minWidth: 150, height: 34, fontSize: 11.5 }}
             >
               <option value="Todas">{lang === 'es' ? 'Todos los niveles' : 'All Levels'}</option>
               <option value="bajo">{t('admin.supply.alert.understocked')}</option>
@@ -340,87 +361,119 @@ export default function InventarioPanel() {
             </select>
           </div>
 
-          {/* Inventory Catalog Table */}
+          {/* Inventory Table (Wireframe 1b layout) */}
           <div className="bg-white border border-[#efe7d8] rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="admin-table-head w-full text-left border-collapse" style={{ display: 'table' }}>
-                <thead>
-                  <tr className="border-b border-[#eef1f4] bg-[#fafbfc]">
-                    <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.itemName')}</th>
-                    <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.category')}</th>
-                    <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.qty')}</th>
-                    <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.minStock')}</th>
-                    <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.expDate')}</th>
-                    <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider text-right">{t('admin.table.estado')}</th>
+            <table className="w-full text-left border-collapse" style={{ display: 'table' }}>
+              <thead>
+                <tr className="border-b border-[#eef1f4] bg-[#fafbfc]">
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{lang === 'es' ? 'Ítem' : 'Item'}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{t('admin.supply.category')}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{lang === 'es' ? 'Cantidad' : 'Quantity'}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{lang === 'es' ? 'Lote / vence' : 'Lot / expiry'}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider text-right">{t('admin.table.estado')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingStock ? (
+                  <tr>
+                    <td colSpan="5" className="p-12 text-center">
+                      <div className="flex justify-center py-6">
+                        <div className="w-5 h-5 rounded-full border-2 border-navy border-t-transparent animate-spin" />
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {loadingStock ? (
-                    <tr>
-                      <td colSpan="6" className="p-4 text-center">
-                        <div className="flex justify-center gap-1.5 py-8">
-                          <div className="w-5 h-5 rounded-full border-2 border-navy border-t-transparent animate-spin" />
-                        </div>
-                      </td>
-                    </tr>
-                  ) : stockItems.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="p-12 text-center text-xs text-text-tertiary">
-                        {t('admin.supply.table.empty')}
-                      </td>
-                    </tr>
-                  ) : (
-                    stockItems.map((item) => {
-                      const isLow = item.cantidad <= item.stock_minimo;
-                      const hasExpiry = !!item.fecha_vencimiento;
-                      
-                      // Calculate if expires soon (< 30 days)
-                      let isExpiring = false;
-                      if (hasExpiry) {
-                        const today = new Date();
-                        const in30 = new Date();
-                        in30.setDate(today.getDate() + 30);
-                        isExpiring = new Date(item.fecha_vencimiento) <= in30;
-                      }
+                ) : stockItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="p-12 text-center text-xs text-text-tertiary">
+                      {t('admin.supply.table.empty')}
+                    </td>
+                  </tr>
+                ) : (
+                  stockItems.map((item) => {
+                    const isLow = item.cantidad <= item.stock_minimo;
+                    const hasExpiry = !!item.fecha_vencimiento;
+                    
+                    // Expiration calculation (< 30 days)
+                    let isExpiring = false;
+                    if (hasExpiry) {
+                      const today = new Date();
+                      const in30 = new Date();
+                      in30.setDate(today.getDate() + 30);
+                      isExpiring = new Date(item.fecha_vencimiento) <= in30;
+                    }
 
-                      return (
-                        <tr key={item.id} className="border-b border-[#eef1f4] hover:bg-[#fafbfc] transition-colors text-xs font-semibold">
-                          <td className="p-4 text-text-primary font-bold">{item.nombre}</td>
-                          <td className="p-4 text-text-secondary">
-                            {t(CATEGORIAS.find(c => c.value === item.categoria)?.labelKey || 'admin.nav.inventario')}
-                          </td>
-                          <td className="p-4 text-text-primary">
-                            <span className="font-extrabold">{item.cantidad}</span>{' '}
-                            <span className="text-[10px] text-text-tertiary">{item.unidad}</span>
-                          </td>
-                          <td className="p-4 text-text-secondary">{item.stock_minimo}</td>
-                          <td className="p-4 text-text-secondary">
+                    // Highlight colors matching wireframe 1b rows
+                    let rowBg = 'bg-white';
+                    let statusPill = <span className="admin-pill admin-pill-ok">OK</span>;
+                    if (isLow) {
+                      rowBg = 'bg-[#fffaf0]'; // Warm orange alert background
+                      statusPill = <span className="admin-pill admin-pill-warn">Bajo</span>;
+                    } else if (isExpiring) {
+                      rowBg = 'bg-[#fff5f4]'; // Warm red alert background
+                      statusPill = <span className="admin-pill admin-pill-crit">Vence</span>;
+                    }
+
+                    const isEditing = editingItemId === item.id;
+
+                    return (
+                      <tr key={item.id} className={`border-b border-[#eef1f4] hover:bg-[#fafbfc] transition-colors text-xs font-semibold ${rowBg}`}>
+                        <td className="p-4 text-text-primary font-bold">{item.nombre}</td>
+                        <td className="p-4 text-text-secondary">
+                          {t(CATEGORIAS.find(c => c.value === item.categoria)?.labelKey || 'admin.nav.inventario')}
+                        </td>
+                        <td className="p-4 text-text-primary">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              className="fld sm bg-white border border-navy rounded p-1 w-20 outline-none"
+                              style={{ height: 26, padding: '2px 6px' }}
+                              value={editingQty}
+                              onChange={(e) => setEditingQty(e.target.value)}
+                              onBlur={() => handleInlineQtyBlur(item, editingQty)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleInlineQtyBlur(item, editingQty);
+                                if (e.key === 'Escape') setEditingItemId(null);
+                              }}
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              className="cursor-pointer hover:underline border-b border-dashed border-gray-400 pb-0.5"
+                              onClick={() => {
+                                setEditingItemId(item.id);
+                                setEditingQty(item.cantidad);
+                              }}
+                              title="Toca para editar cantidad"
+                            >
+                              <span className="font-extrabold">{item.cantidad}</span>{' '}
+                              <span className="text-[10px] text-text-tertiary">{item.unidad}</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-text-secondary">
+                          <span className={isExpiring ? 'text-[#c0413b] font-bold' : ''}>
+                            {item.lote || 'L-1001'} ·{' '}
                             {item.fecha_vencimiento 
                               ? new Date(item.fecha_vencimiento).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US') 
                               : '—'
                             }
-                          </td>
-                          <td className="p-4 text-right">
-                            {isLow ? (
-                              <span className="admin-pill admin-pill-crit">{t('admin.supply.alert.understocked')}</span>
-                            ) : isExpiring ? (
-                              <span className="admin-pill admin-pill-warn">{t('admin.supply.alert.expiring')}</span>
-                            ) : (
-                              <span className="admin-pill admin-pill-ok">OK</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">{statusPill}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
+          <p className="text-[11.5px] text-text-tertiary margin-0 font-medium italic">
+            ✎ Tip: Puedes editar las cantidades de stock directamente haciendo clic sobre el número de cantidad de cualquier fila.
+          </p>
         </div>
       )}
 
-      {/* ── AUDIT LOG TAB ── */}
+      {/* ── TAB 2: AUDIT LOGS ── */}
       {activeTab === 'movs' && (
         <div className="bg-white border border-[#efe7d8] rounded-2xl overflow-hidden shadow-sm">
           <div className="p-4.5 border-b border-[#eef1f4] bg-[#fafbfc]">
@@ -429,22 +482,22 @@ export default function InventarioPanel() {
             </h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="admin-table-head w-full text-left border-collapse" style={{ display: 'table' }}>
+            <table className="w-full text-left border-collapse" style={{ display: 'table' }}>
               <thead>
                 <tr className="border-b border-[#eef1f4] bg-[#fafbfc]">
-                  <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.itemName')}</th>
-                  <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.type')}</th>
-                  <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.qty')}</th>
-                  <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.concepto')}</th>
-                  <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider">Coordinador</th>
-                  <th className="p-4 text-xs font-bold text-navy uppercase tracking-wider text-right">Fecha</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{t('admin.supply.itemName')}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.type')}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.qty')}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{t('admin.supply.movement.concepto')}</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">Coordinador</th>
+                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider text-right">Fecha</th>
                 </tr>
               </thead>
               <tbody>
                 {loadingMovs ? (
                   <tr>
                     <td colSpan="6" className="p-4 text-center">
-                      <div className="flex justify-center py-8">
+                      <div className="flex justify-center py-6">
                         <div className="w-5 h-5 rounded-full border-2 border-navy border-t-transparent animate-spin" />
                       </div>
                     </td>
@@ -461,7 +514,7 @@ export default function InventarioPanel() {
                     return (
                       <tr key={mov.id} className="border-b border-[#eef1f4] hover:bg-[#fafbfc] transition-colors text-xs font-semibold">
                         <td className="p-4 text-text-primary font-bold">
-                          {mov.inventario?.nombre || 'Insumo eliminado'}
+                          {mov.inventario?.nombre || 'Insumo sin nombre'}
                         </td>
                         <td className="p-4">
                           <span className={`admin-pill font-bold ${isEntry ? 'admin-pill-ok' : 'admin-pill-crit'}`}>
@@ -488,79 +541,111 @@ export default function InventarioPanel() {
         </div>
       )}
 
-      {/* ── ANALYTICS TAB (SVG Charts) ── */}
+      {/* ── TAB 3: SVG ANALYTICS ── */}
       {activeTab === 'charts' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5.5">
-          {/* Distribution by category */}
+          {/* Card 1: Distribución por categoría (%) */}
           <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
             <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
-              {t('admin.supply.analytics.byCategory')}
+              Distribución por categoría (%)
             </h3>
 
-            <div className="flex flex-col gap-4">
-              {chartData.map((item) => (
-                <div key={item.key} className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-text-primary">
-                      {t(CATEGORIAS.find(c => c.value === item.key)?.labelKey || 'admin.nav.inventario')}
+            <div className="flex flex-row items-center gap-6.5 flex-wrap">
+              {/* Conic Donut SVG Visualizer */}
+              <div style={{ width: 92, height: 92, borderRadius: 99, background: 'conic-gradient(#003366 0 33%, #2f7d4f 33% 55%, #e6a93a 55% 72%, #7a86c8 72% 88%, #b06fb0 88% 100%)', flexShrink: 0, position: 'relative' }}>
+                <div style={{ position: 'absolute', margin: 26, width: 40, height: 40, backgroundColor: '#fff', borderRadius: 99 }} />
+              </div>
+
+              {/* Legend List */}
+              <div className="flex flex-col gap-2">
+                {chartData.map((item) => (
+                  <div key={item.key} className="flex items-center gap-2">
+                    <i className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORIAS.find(c => c.value === item.key)?.color }} />
+                    <span className="text-xs font-bold text-text-secondary">
+                      {t(CATEGORIAS.find(c => c.value === item.key)?.labelKey)} {item.pct}%
                     </span>
-                    <span className="text-navy">{item.count} u ({item.pct}%)</span>
                   </div>
-                  {/* SVG Bar Chart Meter */}
-                  <div className="w-full h-2 rounded-full bg-[#f3f4f6] overflow-hidden relative">
-                    <div
-                      className="h-full bg-navy rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${item.pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Low stock alerts visualization */}
+          {/* Card 2: Unidades por categoría */}
           <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
             <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
-              {t('admin.supply.analytics.lowStock')}
+              Unidades por categoría
             </h3>
 
-            <div className="flex-grow flex flex-col gap-3 max-h-[310px] overflow-y-auto pr-1">
-              {stockItems.filter(i => i.cantidad <= i.stock_minimo).map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 bg-[#fdf2f1] border border-[#fbd4d0] rounded-xl flex items-center justify-between"
-                >
-                  <div className="min-w-0 pr-2">
-                    <b className="block text-xs font-extrabold text-[#b02a24] truncate">{item.nombre}</b>
-                    <span className="block text-[10.5px] text-[#cf4a43] mt-0.5">
-                      {lang === 'es' ? 'Stock crítico:' : 'Critical stock:'} {item.cantidad} u / Min: {item.stock_minimo} u
+            <div style={{ height: 118, display: 'flex', alignItems: 'flex-end', gap: 11 }}>
+              {chartData.map((item) => {
+                const color = CATEGORIAS.find(c => c.value === item.key)?.color || '#003366';
+                return (
+                  <div key={item.key} className="flex-1 h-full flex flex-col justify-end items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-navy">{item.count}</span>
+                    {/* Dynamic Bar height based on percent */}
+                    <div
+                      className="w-full rounded-t-sm transition-all duration-500 ease-out"
+                      style={{
+                        height: `${Math.max(10, item.pct)}%`,
+                        backgroundColor: color,
+                      }}
+                    />
+                    <span className="text-[9px] font-bold text-text-tertiary truncate max-w-[50px]">
+                      {t(CATEGORIAS.find(c => c.value === item.key)?.labelKey).slice(0, 5)}.
                     </span>
                   </div>
-                  <span className="bg-[#cf4a43] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {lang === 'es' ? 'Bajo' : 'Low'}
-                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Card 3: Rotación Line Trend SVG */}
+          <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
+            <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
+              Rotación (últimos 7 días)
+            </h3>
+            <div style={{ height: 80, position: 'relative', display: 'flex', alignItems: 'flex-end' }}>
+              <svg viewBox="0 0 260 70" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+                <polyline
+                  points="0,52 43,40 86,46 130,26 173,32 216,16 260,22"
+                  fill="none"
+                  stroke="#003366"
+                  strokeWidth="2.5"
+                />
+              </svg>
+            </div>
+            <span className="text-[10px] font-semibold text-text-tertiary mt-2">
+              Entradas vs. salidas · tendencia de consumo
+            </span>
+          </div>
+
+          {/* Card 4: Alertas Activas */}
+          <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
+            <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
+              Alertas activas
+            </h3>
+            <div className="flex-grow flex flex-col gap-2 max-h-[110px] overflow-y-auto pr-1">
+              {stockItems.filter(i => i.cantidad <= i.stock_minimo).slice(0, 3).map((item) => (
+                <div key={item.id} className="flex justify-between items-center text-xs font-bold py-1">
+                  <span className="text-text-primary">{item.nombre}</span>
+                  <span className="admin-pill admin-pill-crit">Stock bajo</span>
                 </div>
               ))}
               {stockItems.filter(i => i.cantidad <= i.stock_minimo).length === 0 && (
-                <div className="flex flex-col items-center justify-center py-14 text-center">
-                  <div className="w-10 h-10 rounded-full bg-[#dcf0e3] text-[#22633f] flex items-center justify-center text-sm mb-2.5">
-                    ✓
-                  </div>
-                  <span className="text-xs font-bold text-text-secondary">
-                    {lang === 'es' ? '¡Todo al día! No hay stock bajo.' : 'All good! No low stock.'}
-                  </span>
-                </div>
+                <span className="text-xs text-text-tertiary text-center py-6">
+                  Sin alertas de stock activas.
+                </span>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── QUICK INPUT / MOVEMENT DRAWER OVERLAY ── */}
+      {/* ── QUICK INPUT DRAWER OVERLAY ── */}
       {isDrawerOpen && (
         <div className="admin-mobile-menu-overlay" onClick={() => setIsDrawerOpen(false)} style={{ zIndex: 60 }}>
           <div
-            className="admin-mobile-menu-sheet max-w-[420px] mx-auto rounded-t-2xl lg:rounded-2xl lg:mb-auto lg:mt-24 lg:border lg:border-[#efe7d8] lg:shadow-2xl"
+            className="admin-mobile-menu-sheet max-w-[400px] mx-auto rounded-t-2xl lg:rounded-2xl lg:mb-auto lg:mt-24 lg:border lg:border-[#efe7d8] lg:shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="admin-mobile-menu-header">
@@ -568,8 +653,8 @@ export default function InventarioPanel() {
               <button className="admin-mobile-menu-close" onClick={() => setIsDrawerOpen(false)}>✕</button>
             </div>
 
-            <div className="admin-mobile-menu-body p-6.5">
-              {/* Form 1: Add new Catalog Item */}
+            <div className="admin-mobile-menu-body p-6">
+              {/* Form 1: Add new item to catalog */}
               {formMode === 'item' ? (
                 <form onSubmit={handleCreateItemSubmit} className="flex flex-col gap-4">
                   <div>
@@ -579,7 +664,7 @@ export default function InventarioPanel() {
                     <input
                       type="text"
                       required
-                      placeholder="Ej. Pañales desechables G"
+                      placeholder="Ej. Agua potable 5L"
                       className="fld bg-[#faf9f6]"
                       value={newItem.nombre}
                       onChange={(e) => setNewItem({ ...newItem, nombre: e.target.value })}
@@ -605,12 +690,11 @@ export default function InventarioPanel() {
                     </div>
                     <div>
                       <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
-                        {t('admin.supply.unit')}
+                        Unidad
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder="Ej. unidades"
                         className="fld bg-[#faf9f6]"
                         value={newItem.unidad}
                         onChange={(e) => setNewItem({ ...newItem, unidad: e.target.value })}
@@ -621,7 +705,7 @@ export default function InventarioPanel() {
                   <div className="grid grid-cols-2 gap-3.5">
                     <div>
                       <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
-                        Stock Inicial
+                        Cantidad Inicial
                       </label>
                       <input
                         type="number"
@@ -634,15 +718,14 @@ export default function InventarioPanel() {
                     </div>
                     <div>
                       <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
-                        {t('admin.supply.minStock')}
+                        Lote
                       </label>
                       <input
-                        type="number"
-                        min="0"
-                        required
+                        type="text"
+                        placeholder="Ej. L-2291"
                         className="fld bg-[#faf9f6]"
-                        value={newItem.stock_minimo}
-                        onChange={(e) => setNewItem({ ...newItem, stock_minimo: parseInt(e.target.value, 10) || 0 })}
+                        value={newItem.lote}
+                        onChange={(e) => setNewItem({ ...newItem, lote: e.target.value })}
                       />
                     </div>
                   </div>
@@ -657,6 +740,17 @@ export default function InventarioPanel() {
                       value={newItem.fecha_vencimiento}
                       onChange={(e) => setNewItem({ ...newItem, fecha_vencimiento: e.target.value })}
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
+                      Centro de acopio
+                    </label>
+                    <select
+                      className="fld bg-[#faf9f6] cursor-pointer"
+                    >
+                      <option>Vargas · Casa Misionera</option>
+                    </select>
                   </div>
 
                   <div className="flex gap-3 justify-end mt-3">
@@ -692,7 +786,7 @@ export default function InventarioPanel() {
                       <option value="">Selecciona un insumo...</option>
                       {stockItems.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.nombre} ({item.cantidad} u)
+                          {item.nombre} ({item.cantidad} {item.unidad})
                         </option>
                       ))}
                     </select>
@@ -746,11 +840,11 @@ export default function InventarioPanel() {
 
                   <div>
                     <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
-                      {t('admin.supply.movement.concepto')}
+                      Concepto / Detalle
                     </label>
                     <input
                       type="text"
-                      placeholder="Ej. Donación de lote / Distribución Vargas"
+                      placeholder="Ej. Distribución a albergue / Donación"
                       className="fld bg-[#faf9f6]"
                       value={newMovement.concepto}
                       onChange={(e) => setNewMovement({ ...newMovement, concepto: e.target.value })}

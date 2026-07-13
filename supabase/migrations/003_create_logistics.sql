@@ -28,6 +28,7 @@ create table if not exists inventario (
   unidad text not null, -- 'unidades', 'litros', 'kg', 'cajas'
   cantidad int not null default 0,
   stock_minimo int not null default 10,
+  lote text default 'L-1001',
   fecha_vencimiento date,
   created_at timestamptz default now()
 );
