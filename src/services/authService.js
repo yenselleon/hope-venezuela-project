@@ -34,7 +34,7 @@ export const authService = {
     if (import.meta.env.DEV) {
       return {
         user: {
-          email: 'coordinador@ready.set.go',
+          email: 'voluntariosrsg@gmail.com',
           user_metadata: { role: 'super_admin' },
           app_metadata: { role: 'super_admin' },
           role: 'authenticated',
@@ -55,7 +55,7 @@ export const authService = {
       // Sincronizar inmediatamente el callback con la sesión mock
       callback({
         user: {
-          email: 'coordinador@ready.set.go',
+          email: 'voluntariosrsg@gmail.com',
           user_metadata: { role: 'super_admin' },
           app_metadata: { role: 'super_admin' },
           role: 'authenticated',
