@@ -39,3 +39,32 @@ Para transferencias de donaciones:
 *   **Lugar**: Casa Misionera
 *   **Dirección**: Calle Real de Pariata, a 100 m del hospital de Pariata, frente al CC de Pariata · Vargas, La Guaira.
 *   **Contacto**: Arturo S. (0412-7005231)
+
+---
+
+## 🎨 Referencias Visuales — Claude Design (FUENTE DE VERDAD)
+
+**Claude Design** es la fuente de verdad visual del proyecto. Todas las vistas DEBEN implementarse siguiendo pixel-por-pixel los diseños exportados.
+
+### Ubicación de los archivos de referencia
+
+```
+context/hope venezuela/
+├── Landing.dc.html       → Diseño de la landing page pública
+├── Registro.dc.html      → Diseño del formulario multi-step de voluntariado
+├── Donar.dc.html         → Diseño de la página de donaciones
+├── Admin.dc.html         → Diseño del panel de coordinación (login + dashboard + voluntarios + aprobación)
+├── Fase1 Wireframes.dc.html → Wireframes de la fase 1
+├── Fase2 Wireframes.dc.html → Wireframes de la fase 2
+├── assets/               → Recursos visuales (iconos, logos)
+└── uploads/              → Imágenes subidas al diseño
+```
+
+### Reglas de implementación visual
+
+1. **Antes de implementar cualquier vista**, SIEMPRE abrir y analizar el archivo `.dc.html` correspondiente en `context/hope venezuela/`.
+2. **Si hay discrepancia** entre el código implementado y el diseño de referencia, **el diseño gana**.
+3. Extraer del `.dc.html`: colores exactos, tipografía (font-weight, font-size), espaciado (padding, gap, margins), border-radius, sombras, layout (flex, grid), y estados interactivos.
+4. Los archivos `.dc.html` son interactivos — contienen lógica de navegación, transiciones y estados que deben replicarse en React.
+5. **No inventar diseños**. Si un componente no tiene referencia visual, consultar antes de implementar.
+

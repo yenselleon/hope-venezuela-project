@@ -1,9 +1,10 @@
 // src/App.jsx
 // Componente raíz de la aplicación.
 // Configura TanStack Query Client y React Router.
-// Estructura de layout común: Header, Router Switch, Footer y Toast global.
+// Rutas públicas: Landing, Registro, Donar.
+// Rutas admin: Login (standalone), AdminLayout shell con nested panels.
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header } from '@/components/layout/Header';
@@ -12,6 +13,15 @@ import { Landing } from '@/pages/Landing';
 import { Registro } from '@/pages/Registro';
 import { Donar } from '@/pages/Donar';
 import { Toast } from '@/components/ui/Toast';
+import { ProtectedRoute } from '@/components/admin/ProtectedRoute';
+import { useAuth } from '@/hooks/useAuth';
+
+// Lazy load admin views — no las carga hasta que se navega a /admin
+const Login = lazy(() => import('@/pages/admin/Login'));
+const AdminLayout = lazy(() => import('@/components/admin/AdminLayout'));
+const DashboardPanel = lazy(() => import('@/pages/admin/DashboardPanel'));
+const VoluntariosPanel = lazy(() => import('@/pages/admin/VoluntariosPanel'));
+const AprobacionPanel = lazy(() => import('@/pages/admin/AprobacionPanel'));
 
 // Inicializar el cliente de TanStack Query
 const queryClient = new QueryClient({
@@ -23,29 +33,79 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Layout público: Header + contenido + Footer.
+ */
+function PublicLayout({ children }) {
+  return (
+    <>
+      <Header />
+      <div className="flex-grow">{children}</div>
+      <Footer />
+    </>
+  );
+}
+
+/**
+ * Fallback de carga para las vistas admin (lazy loaded).
+ */
+function AdminLoader() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eef1f4' }}>
+      <div style={{ width: 32, height: 32, border: '3px solid #003366', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+    </div>
+  );
+}
+
+function AppRoutes() {
+  // Inicializa la suscripción a auth state (suscripción con cleanup — uso válido de useEffect)
+  useAuth();
+
+  return (
+    <Routes>
+      {/* ── Rutas públicas ── */}
+      <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
+      <Route path="/registro" element={<PublicLayout><Registro /></PublicLayout>} />
+      <Route path="/donar" element={<PublicLayout><Donar /></PublicLayout>} />
+
+      {/* ── Login admin (standalone, sin AdminLayout) ── */}
+      <Route
+        path="/admin/login"
+        element={
+          <Suspense fallback={<AdminLoader />}>
+            <Login />
+          </Suspense>
+        }
+      />
+
+      {/* ── Admin shell con nested routes ── */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<AdminLoader />}>
+              <AdminLayout />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Suspense fallback={<AdminLoader />}><DashboardPanel /></Suspense>} />
+        <Route path="voluntarios" element={<Suspense fallback={<AdminLoader />}><VoluntariosPanel /></Suspense>} />
+        <Route path="aprobacion" element={<Suspense fallback={<AdminLoader />}><AprobacionPanel /></Suspense>} />
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <div className="flex flex-col min-h-screen">
-          {/* Header común bilingüe */}
-          <Header />
-
-          {/* Área de contenido de rutas */}
-          <div className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/registro" element={<Registro />} />
-              <Route path="/donar" element={<Donar />} />
-              {/* Fallback de redirección */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-
-          {/* Footer común bilingüe */}
-          <Footer />
-
-          {/* Toast de notificaciones globales */}
+          <AppRoutes />
           <Toast />
         </div>
       </BrowserRouter>

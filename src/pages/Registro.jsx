@@ -74,9 +74,9 @@ export function Registro() {
 
     // Enviar todos los datos recolectados
     mutation.mutate({
-      personal: step1,
-      areas: step2,
-      disponibilidad: step3,
+      step1,
+      step2,
+      step3,
     });
   };
 

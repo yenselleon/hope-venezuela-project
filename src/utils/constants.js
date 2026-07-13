@@ -188,7 +188,7 @@ export const CENTROS_ACOPIO = [
   {
     id: 'vargas',
     zona: 'Vargas',
-    nombre: 'Casa de Misiones',
+    nombre: 'Casa Misionera',
     direccion: 'Calle Real de Pariata, a 100 m del hospital de Pariata, frente al CC de Pariata.',
     contactos: [{ nombre: 'Arturo S.', telefono: '0412-7005231', tel: '04127005231' }],
     mapa: 'https://maps.app.goo.gl/cuyPiZ8qtei4V78x7?g_st=iwb',
