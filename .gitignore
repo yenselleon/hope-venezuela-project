@@ -24,3 +24,6 @@ context/*
 *.njsproj
 *.sln
 *.sw?
+
+# Test results
+test-results/

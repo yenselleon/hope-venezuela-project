@@ -83,6 +83,9 @@ export function validateStep1(data) {
   const estado = validateRequired(data.estado, 'Selecciona tu estado.');
   if (!estado.valid) { errors.estado = estado.error; valid = false; }
 
+  const profesion = validateRequired(data.profesion, 'Indica tu profesión u oficio.');
+  if (!profesion.valid) { errors.profesion = profesion.error; valid = false; }
+
   return { valid, errors };
 }
 

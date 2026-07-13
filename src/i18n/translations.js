@@ -246,6 +246,268 @@ const translations = {
   'turno.tarde': { es: 'Tarde', en: 'Afternoon' },
   'turno.noche': { es: 'Noche', en: 'Night' },
   'turno.24h': { es: '24 h', en: '24 h' },
+
+  // ─── Panel Admin (Claude Design Reference) ──────────────────────────────────
+
+  // Login — split layout
+  'admin.login.brand': { es: 'Hope · Admin', en: 'Hope · Admin' },
+  'admin.login.console': { es: 'Consola de coordinación', en: 'Coordination console' },
+  'admin.login.console.desc': { es: 'Gestión de voluntarios, aprobaciones e insumos de la campaña. Acceso exclusivo para administradores y coordinadores.', en: 'Volunteer management, approvals and campaign supplies. Exclusive access for administrators and coordinators.' },
+  'admin.login.tagline': { es: 'Juntos servimos, juntos reconstruimos', en: 'Together we serve, together we rebuild' },
+  'admin.login.title': { es: 'Iniciar sesión', en: 'Sign in' },
+  'admin.login.subtitle': { es: 'Ingresa con tus credenciales de administrador.', en: 'Enter your admin credentials.' },
+  'admin.login.email': { es: 'Correo', en: 'Email' },
+  'admin.login.email.placeholder': { es: 'tu@correo.org', en: 'you@email.org' },
+  'admin.login.password': { es: 'Contraseña', en: 'Password' },
+  'admin.login.forgot': { es: '¿Olvidaste tu contraseña?', en: 'Forgot your password?' },
+  'admin.login.submit': { es: 'Entrar', en: 'Sign in' },
+  'admin.login.loading': { es: 'Ingresando…', en: 'Signing in…' },
+  'admin.login.error': { es: 'Credenciales inválidas. Verifica e intenta de nuevo.', en: 'Invalid credentials. Please try again.' },
+  'admin.login.restricted': { es: 'Acceso solo para administradores autorizados', en: 'Access restricted to authorized admins' },
+  'admin.login.back': { es: '← Volver al sitio público', en: '← Back to public site' },
+
+  // Sidebar navigation
+  'admin.nav.dashboard': { es: 'Dashboard', en: 'Dashboard' },
+  'admin.nav.voluntarios': { es: 'Voluntarios', en: 'Volunteers' },
+  'admin.nav.aprobacion': { es: 'Aprobación', en: 'Approval' },
+  'admin.nav.inventario': { es: 'Inventario', en: 'Inventory' },
+  'admin.nav.personal': { es: 'Personal', en: 'Personnel' },
+  'admin.logout': { es: 'Cerrar sesión', en: 'Sign out' },
+
+  // Topbar
+  'admin.search': { es: 'Buscar voluntario…', en: 'Search volunteer…' },
+  'admin.filter.zona': { es: 'Zona: Todas', en: 'Zone: All' },
+  'admin.filter.daterange': { es: 'Últimos 7 días', en: 'Last 7 days' },
+
+  // Dashboard KPIs
+  'admin.kpi.total': { es: 'Voluntarios totales', en: 'Total volunteers' },
+  'admin.kpi.activos': { es: 'Activos', en: 'Active' },
+  'admin.kpi.pendientes': { es: 'Pendientes por aprobar', en: 'Pending approval' },
+  'admin.kpi.insumos': { es: 'Insumos contabilizados', en: 'Supplies counted' },
+  'admin.kpi.alertas': { es: 'Alertas críticas', en: 'Critical alerts' },
+
+  // Dashboard charts
+  'admin.chart.areas': { es: 'Voluntarios por área / habilidad', en: 'Volunteers by area / skill' },
+  'admin.chart.estado': { es: 'Voluntarios por estado', en: 'Volunteers by status' },
+  'admin.chart.cobertura': { es: 'Cobertura por zona (desplegados)', en: 'Coverage by zone (deployed)' },
+  'admin.chart.insumos': { es: 'Insumos por categoría · alertas', en: 'Supplies by category · alerts' },
+  'admin.chart.lowcoverage': { es: 'con baja cobertura — priorizar asignación', en: 'with low coverage — prioritize assignment' },
+
+  // Supply categories
+  'admin.supply.agua': { es: 'Agua potable', en: 'Drinking water' },
+  'admin.supply.alimentos': { es: 'Alimentos', en: 'Food' },
+  'admin.supply.medicinas': { es: 'Medicinas', en: 'Medicines' },
+  'admin.supply.higiene': { es: 'Higiene', en: 'Hygiene' },
+  'admin.supply.colchones': { es: 'Colchones', en: 'Mattresses' },
+  'admin.supply.ok': { es: 'OK', en: 'OK' },
+  'admin.supply.low': { es: 'Stock bajo', en: 'Low stock' },
+  'admin.supply.expiring': { es: 'Vence pronto', en: 'Expiring soon' },
+
+  // Chart status labels
+  'admin.status.activos': { es: 'Activos', en: 'Active' },
+  'admin.status.pendientes': { es: 'Pendientes', en: 'Pending' },
+  'admin.status.aprobados': { es: 'Aprobados', en: 'Approved' },
+  'admin.status.rechazados': { es: 'Rechazados', en: 'Rejected' },
+
+  // Voluntarios panel
+  'admin.vol.registros': { es: 'registros', en: 'records' },
+  'admin.vol.export': { es: 'Exportar', en: 'Export' },
+  'admin.vol.showing': { es: 'Mostrando', en: 'Showing' },
+  'admin.vol.of': { es: 'de', en: 'of' },
+  'admin.vol.noResults': { es: 'Sin resultados para los filtros aplicados.', en: 'No results for the applied filters.' },
+
+  // Chip filters
+  'admin.chip.salud': { es: 'Salud', en: 'Health' },
+  'admin.chip.logistica': { es: 'Logística', en: 'Logistics' },
+  'admin.chip.transporte': { es: 'Transporte', en: 'Transport' },
+  'admin.chip.familias': { es: 'Familias', en: 'Families' },
+  'admin.chip.certificados': { es: '★ Certificados', en: '★ Certified' },
+  'admin.chip.pendiente': { es: 'Estado: pendiente', en: 'Status: pending' },
+  'admin.chip.activo': { es: 'Estado: activo', en: 'Status: active' },
+
+  // Table headers
+  'admin.table.nombre': { es: 'Nombre', en: 'Name' },
+  'admin.table.cedula': { es: 'Cédula', en: 'ID' },
+  'admin.table.area': { es: 'Área', en: 'Area' },
+  'admin.table.zona': { es: 'Zona', en: 'Zone' },
+  'admin.table.estado': { es: 'Estado', en: 'Status' },
+  'admin.table.sinAsignar': { es: 'Sin asignar', en: 'Not assigned' },
+
+  // Drawer detail
+  'admin.drawer.title': { es: 'Detalle del voluntario', en: 'Volunteer detail' },
+  'admin.drawer.sensitive': { es: 'Datos sensibles', en: 'Sensitive data' },
+  'admin.drawer.reveal': { es: '👁 Revelar', en: '👁 Reveal' },
+  'admin.drawer.hide': { es: '🙈 Ocultar', en: '🙈 Hide' },
+  'admin.drawer.cedula': { es: 'Cédula', en: 'ID number' },
+  'admin.drawer.telefono': { es: 'Teléfono', en: 'Phone' },
+  'admin.drawer.edadGenero': { es: 'Edad · género', en: 'Age · gender' },
+  'admin.drawer.areasYCerts': { es: 'Áreas y certificaciones', en: 'Areas and certifications' },
+  'admin.drawer.disponibilidad': { es: 'Disponibilidad', en: 'Availability' },
+  'admin.drawer.zonaAsignada': { es: 'Zona asignada', en: 'Assigned zone' },
+  'admin.drawer.zonaDeseada': { es: 'Zona deseada', en: 'Desired zone' },
+  'admin.drawer.sinCerts': { es: 'Sin certificaciones', en: 'No certifications' },
+  'admin.drawer.vehiculo': { es: 'Vehículo', en: 'Vehicle' },
+  'admin.drawer.aprobar': { es: 'Aprobar', en: 'Approve' },
+  'admin.drawer.rechazar': { es: 'Rechazar', en: 'Reject' },
+  'admin.drawer.editarEstado': { es: 'Editar estado', en: 'Edit status' },
+
+  // Status pills
+  'admin.pill.activo': { es: 'Activo', en: 'Active' },
+  'admin.pill.pendiente': { es: 'Pendiente', en: 'Pending' },
+  'admin.pill.aprobado': { es: 'Aprobado', en: 'Approved' },
+  'admin.pill.menor': { es: 'menor', en: 'minor' },
+
+  // Aprobación panel
+  'admin.apr.enCola': { es: 'en cola', en: 'in queue' },
+  'admin.apr.desc': { es: 'Revisa y aprueba los registros nuevos.', en: 'Review and approve new registrations.' },
+  'admin.apr.selectAll': { es: 'Seleccionar todos', en: 'Select all' },
+  'admin.apr.aprobarSel': { es: 'Aprobar seleccionados', en: 'Approve selected' },
+  'admin.apr.allDone': { es: '¡Todo al día!', en: 'All caught up!' },
+  'admin.apr.allDoneDesc': { es: 'No hay voluntarios pendientes por aprobar.', en: 'No volunteers pending approval.' },
+  'admin.apr.approved': { es: 'Voluntario aprobado', en: 'Volunteer approved' },
+  'admin.apr.rejected': { es: 'Voluntario rechazado', en: 'Volunteer rejected' },
+  'admin.apr.batchDone': { es: 'aprobados correctamente', en: 'approved successfully' },
+
+  // Area labels (for charts)
+  'admin.area.salud': { es: 'Salud', en: 'Health' },
+  'admin.area.logistica': { es: 'Logística', en: 'Logistics' },
+  'admin.area.transporte': { es: 'Transporte', en: 'Transport' },
+  'admin.area.familias': { es: 'Familias', en: 'Families' },
+  'admin.area.rescate': { es: 'Rescate', en: 'Rescue' },
+
+  // Mobile tabs
+  'admin.nav.mas': { es: 'Más', en: 'More' },
+  'admin.mtab.panel': { es: 'Panel', en: 'Dashboard' },
+  'admin.mtab.voluntarios': { es: 'Voluntarios', en: 'Volunteers' },
+  'admin.mtab.aprobar': { es: 'Aprobar', en: 'Approve' },
+  'admin.mtab.salir': { es: 'Salir', en: 'Logout' },
+
+  // Toast messages
+  'admin.toast.revealed': { es: 'Datos revelados (registrado)', en: 'Data revealed (logged)' },
+  'admin.toast.hidden': { es: 'Datos ocultados', en: 'Data hidden' },
+  'admin.toast.exported': { es: 'Datos exportados', en: 'Data exported' },
+
+  // Turno labels for admin
+  'admin.turno.m': { es: 'Mañana', en: 'Morning' },
+  'admin.turno.t': { es: 'Tarde', en: 'Afternoon' },
+  'admin.turno.n': { es: 'Noche', en: 'Night' },
+
+  // ─── Admin Panel v2 (redesign) ────────────────────────────────────────────
+
+  // Login branding
+  'admin.login.console.title': { es: 'Consola de coordinación', en: 'Coordination console' },
+  'admin.login.console.desc': { es: 'Gestión de voluntarios, aprobaciones e insumos de la campaña. Acceso exclusivo para administradores y coordinadores.', en: 'Volunteer management, approvals and campaign supplies. Exclusive access for administrators and coordinators.' },
+  'admin.login.tagline': { es: 'Juntos servimos, juntos reconstruimos', en: 'Together we serve, together we rebuild' },
+  'admin.login.heading': { es: 'Iniciar sesión', en: 'Sign in' },
+  'admin.login.subtitle': { es: 'Ingresa con tus credenciales de administrador.', en: 'Enter your admin credentials.' },
+  'admin.login.email.label': { es: 'Correo', en: 'Email' },
+  'admin.login.password.label': { es: 'Contraseña', en: 'Password' },
+  'admin.login.forgot': { es: '¿Olvidaste tu contraseña?', en: 'Forgot your password?' },
+  'admin.login.adminOnly': { es: 'Acceso solo para administradores autorizados', en: 'Authorized administrators only' },
+  'admin.login.backPublic': { es: 'Volver al sitio público', en: 'Back to public site' },
+
+  // Nav items
+  'admin.nav.voluntarios': { es: 'Voluntarios', en: 'Volunteers' },
+  'admin.nav.aprobacion': { es: 'Aprobación', en: 'Approval' },
+  'admin.nav.aprobacion.title': { es: 'Aprobación de voluntarios', en: 'Volunteer approval' },
+  'admin.nav.inventario': { es: 'Inventario', en: 'Inventory' },
+  'admin.nav.personal': { es: 'Personal', en: 'Staff' },
+  'admin.nav.aprobar': { es: 'Aprobar', en: 'Approve' },
+  'admin.nav.salir': { es: 'Salir', en: 'Exit' },
+  'admin.role.coordinador': { es: 'Coordinador', en: 'Coordinator' },
+
+  // Topbar
+  'admin.topbar.last7days': { es: 'Últimos 7 días', en: 'Last 7 days' },
+
+  // Dashboard KPIs
+  'admin.dash.kpi.total': { es: 'Voluntarios totales', en: 'Total volunteers' },
+  'admin.dash.kpi.pending': { es: 'Pendientes por aprobar', en: 'Pending approval' },
+  'admin.dash.kpi.supplies': { es: 'Insumos contabilizados', en: 'Supplies counted' },
+  'admin.dash.kpi.alerts': { es: 'Alertas críticas', en: 'Critical alerts' },
+
+  // Dashboard charts
+  'admin.dash.byArea': { es: 'Voluntarios por área / habilidad', en: 'Volunteers by area / skill' },
+  'admin.dash.byStatus': { es: 'Voluntarios por estado', en: 'Volunteers by status' },
+  'admin.dash.aprobados': { es: 'Aprobados', en: 'Approved' },
+  'admin.dash.zoneCoverage': { es: 'Cobertura por zona (desplegados)', en: 'Zone coverage (deployed)' },
+  'admin.dash.lowCoverage': { es: 'Los Teques con baja cobertura — priorizar asignación', en: 'Los Teques with low coverage — prioritize assignment' },
+  'admin.dash.supplies': { es: 'Insumos por categoría · alertas', en: 'Supplies by category · alerts' },
+
+  // Supply names
+  'admin.supply.water': { es: 'Agua potable', en: 'Drinking water' },
+  'admin.supply.food': { es: 'Alimentos', en: 'Food' },
+  'admin.supply.medicine': { es: 'Medicinas', en: 'Medicines' },
+  'admin.supply.hygiene': { es: 'Higiene', en: 'Hygiene' },
+  'admin.supply.mattresses': { es: 'Colchones', en: 'Mattresses' },
+
+  // Status labels
+  'admin.status.activo': { es: 'Activo', en: 'Active' },
+  'admin.status.pendiente': { es: 'Pendiente', en: 'Pending' },
+  'admin.status.aprobado': { es: 'Aprobado', en: 'Approved' },
+  'admin.status.rechazado': { es: 'Rechazado', en: 'Rejected' },
+
+  // Voluntarios panel
+  'admin.vol.empty': { es: 'Sin resultados para los filtros aplicados.', en: 'No results for the applied filters.' },
+
+  // Drawer detail
+  'admin.detail.sensitive': { es: 'Datos sensibles', en: 'Sensitive data' },
+  'admin.detail.ageGender': { es: 'Edad · género', en: 'Age · gender' },
+  'admin.detail.noCerts': { es: 'Sin certificaciones', en: 'No certifications' },
+  'admin.detail.zoneAssigned': { es: 'Zona asignada', en: 'Assigned zone' },
+  'admin.detail.desiredZone': { es: 'Zona deseada', en: 'Desired zone' },
+
+  // Flags
+  'admin.flag.menor': { es: 'Menor de edad', en: 'Underage' },
+  'admin.flag.rescate': { es: 'Rescate urbano', en: 'Urban rescue' },
+
+  // Actions
+  'admin.action.approve': { es: 'Aprobar', en: 'Approve' },
+  'admin.action.reject': { es: 'Rechazar', en: 'Reject' },
+  'admin.action.editStatus': { es: 'Editar estado', en: 'Edit status' },
+  'admin.action.view': { es: 'Ver', en: 'View' },
+
+  // Aprobación panel
+  'admin.apr.inQueue': { es: 'en cola', en: 'in queue' },
+  'admin.apr.reviewDesc': { es: 'Revisa y aprueba los registros nuevos.', en: 'Review and approve new registrations.' },
+  'admin.apr.batchApprove': { es: 'Aprobar seleccionados', en: 'Approve selected' },
+  'admin.apr.allClear': { es: '¡Todo al día!', en: 'All caught up!' },
+  'admin.apr.noPending': { es: 'No hay voluntarios pendientes por aprobar.', en: 'No volunteers pending approval.' },
+  'admin.apr.selectAtLeast': { es: 'Selecciona al menos un voluntario', en: 'Select at least one volunteer' },
+  'admin.apr.years': { es: 'años', en: 'years' },
+  'admin.apr.desiredZone': { es: 'zona deseada', en: 'desired zone' },
+  'admin.apr.confirmReject.title': { es: 'Rechazar voluntario', en: 'Reject volunteer' },
+  'admin.apr.confirmReject.desc': { es: '¿Estás seguro de que deseas rechazar a este voluntario? Esta acción cambiará su estado a "rechazado".', en: 'Are you sure you want to reject this volunteer? This action will change their status to "rejected".' },
+  'admin.apr.confirmReject.action': { es: 'Sí, rechazar', en: 'Yes, reject' },
+
+  // Toasts
+  'admin.toast.approved': { es: 'aprobado', en: 'approved' },
+  'admin.toast.rejected': { es: 'rechazado', en: 'rejected' },
+  'admin.toast.batchApproved': { es: 'voluntarios aprobados', en: 'volunteers approved' },
+  'admin.toast.error': { es: 'Error al procesar la solicitud.', en: 'Error processing request.' },
+  'admin.toast.dataRevealed': { es: 'Datos revelados (registrado)', en: 'Data revealed (logged)' },
+  'admin.toast.dataHidden': { es: 'Datos ocultados', en: 'Data hidden' },
+  'admin.toast.export': { es: 'Exportar: elige formato y columnas (demo)', en: 'Export: choose format and columns (demo)' },
+
+  // Validation
+  'validation.profesion': { es: 'Indica tu profesión u oficio.', en: 'Enter your profession or trade.' },
+
+  // Asignación de Zonas y Turnos
+  'admin.assign.title': { es: 'Asignar Zona y Turno', en: 'Assign Zone & Shift' },
+  'admin.assign.zona': { es: 'Zona de Despliegue', en: 'Deployment Zone' },
+  'admin.assign.turno': { es: 'Turno Asignado', en: 'Assigned Shift' },
+  'admin.assign.notas': { es: 'Notas administrativas / observaciones', en: 'Administrative notes / observations' },
+  'admin.assign.success': { es: '✓ Voluntario asignado correctamente.', en: '✓ Volunteer successfully assigned.' },
+  'admin.assign.error': { es: 'Error al asignar el voluntario.', en: 'Error assigning volunteer.' },
+  'admin.assign.cancel': { es: 'Cancelar', en: 'Cancel' },
+  'admin.assign.save': { es: 'Guardar asignación', en: 'Save assignment' },
+  'admin.assign.saving': { es: 'Guardando…', en: 'Saving…' },
+
+  // Exportación
+  'admin.export.title': { es: 'Exportar Registro de Voluntarios', en: 'Export Volunteer Registry' },
+  'admin.export.format': { es: 'Selecciona el formato de exportación', en: 'Select export file format' },
+  'admin.export.warning': { es: 'Advertencia: este archivo contiene datos civiles y personales sensibles (Cédulas y Teléfonos). Úsalo solo para fines oficiales de coordinación de la campaña.', en: 'Warning: this file contains sensitive personal and civil data (ID & Phone numbers). Use only for official campaign coordination purposes.' },
+  'admin.export.btnExcel': { es: 'Exportar a Excel (.xlsx)', en: 'Export to Excel (.xlsx)' },
+  'admin.export.btnPdf': { es: 'Exportar a PDF (.pdf)', en: 'Export to PDF (.pdf)' },
 };
 
 export default translations;
