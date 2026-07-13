@@ -273,6 +273,7 @@ const translations = {
   'admin.nav.voluntarios': { es: 'Voluntarios', en: 'Volunteers' },
   'admin.nav.aprobacion': { es: 'Aprobación', en: 'Approval' },
   'admin.nav.inventario': { es: 'Inventario', en: 'Inventory' },
+  'admin.nav.inventario.title': { es: 'Inventario de insumos', en: 'Supply Inventory' },
   'admin.nav.personal': { es: 'Personal', en: 'Personnel' },
   'admin.logout': { es: 'Cerrar sesión', en: 'Sign out' },
 

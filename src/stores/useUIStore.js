@@ -1,10 +1,13 @@
 // src/stores/useUIStore.js
-// Store Zustand para estado de UI transversal: toasts, modales.
-// No necesita Provider.
+// Store Zustand para estado de UI transversal: toasts, modales, búsqueda global.
 
 import { create } from 'zustand';
 
 export const useUIStore = create((set, get) => ({
+  // ─── Búsqueda Global ───
+  searchQuery: '',
+  setSearchQuery: (query) => set({ searchQuery: query }),
+
   // ─── Toast ────────────────────────────────────────────────────────────────
   toast: null, // { message: string, type: 'success' | 'info' | 'error' }
   _toastTimer: null,

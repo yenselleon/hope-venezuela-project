@@ -11,6 +11,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useI18nStore } from '@/stores/useI18nStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { authService } from '@/services/authService';
 import { volunteerService } from '@/services/volunteerService';
 import { inventarioService } from '@/services/inventarioService';
@@ -31,7 +32,7 @@ function usePanelTitle(pathname) {
   if (pathname.includes('/aprobacion')) return t('admin.nav.aprobacion.title');
   if (pathname.includes('/voluntarios')) return t('admin.nav.voluntarios');
   if (pathname.includes('/mapeo')) return t('admin.nav.mapeo.title');
-  if (pathname.includes('/inventario')) return t('admin.nav.inventario');
+  if (pathname.includes('/inventario')) return t('admin.nav.inventario.title');
   if (pathname.includes('/analitica')) return t('admin.nav.analitica.title');
   return 'Dashboard';
 }
@@ -133,6 +134,9 @@ export default function AdminLayout() {
   const pageTitle = usePanelTitle(location.pathname);
   const initials = useMemo(() => getInitials(user), [user]);
   const displayName = useMemo(() => getDisplayName(user), [user]);
+
+  const searchQuery = useUIStore((s) => s.searchQuery);
+  const setSearchQuery = useUIStore((s) => s.setSearchQuery);
 
   // Fetch pending count for sidebar badge
   const { data: pendingData } = useQuery({
@@ -327,6 +331,8 @@ export default function AdminLayout() {
               placeholder={t('admin.search')}
               style={{ height: 38, paddingLeft: 34, fontSize: 13 }}
               id="admin-global-search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
