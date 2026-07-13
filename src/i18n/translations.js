@@ -512,8 +512,10 @@ const translations = {
   'admin.export.btnPdf': { es: 'Exportar a PDF (.pdf)', en: 'Export to PDF (.pdf)' },
 
   // Navegación
-  'admin.nav.mapeo': { es: 'Mapeo', en: 'Mapping' },
+  'admin.nav.mapeo': { es: 'Despliegue', en: 'Deployment' },
   'admin.nav.mapeo.title': { es: 'Despliegue y Mapeo', en: 'Deployment & Mapping' },
+  'admin.nav.analitica': { es: 'Analítica', en: 'Analytics' },
+  'admin.nav.analitica.title': { es: 'Analítica de insumos', en: 'Supply Analytics' },
 
   // Mapeo Panel
   'admin.mapeo.desc': { es: 'Visualiza el despliegue de voluntarios y asígnalos a zonas afectadas.', en: 'Visualize volunteer deployment and assign them to affected zones.' },

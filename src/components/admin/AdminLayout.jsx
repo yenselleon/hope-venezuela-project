@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useI18nStore } from '@/stores/useI18nStore';
 import { authService } from '@/services/authService';
 import { volunteerService } from '@/services/volunteerService';
+import { inventarioService } from '@/services/inventarioService';
 import logoHeart from '@/assets/logo-heart.png';
 import '@/pages/admin/Admin.css';
 
@@ -31,6 +32,7 @@ function usePanelTitle(pathname) {
   if (pathname.includes('/voluntarios')) return t('admin.nav.voluntarios');
   if (pathname.includes('/mapeo')) return t('admin.nav.mapeo.title');
   if (pathname.includes('/inventario')) return t('admin.nav.inventario');
+  if (pathname.includes('/analitica')) return t('admin.nav.analitica.title');
   return 'Dashboard';
 }
 
@@ -141,6 +143,32 @@ export default function AdminLayout() {
   });
   const pendingCount = pendingData ?? 0;
 
+  // Fetch inventory items to calculate alert badges in sidebar/menu
+  const { data: inventoryItems = [] } = useQuery({
+    queryKey: ['inventario', { sidebarCount: true }],
+    queryFn: () => inventarioService.getAll(),
+    staleTime: 30_000,
+  });
+
+  const inventoryAlertCount = useMemo(() => {
+    let count = 0;
+    const today = new Date();
+    const in30Days = new Date();
+    in30Days.setDate(today.getDate() + 30);
+
+    inventoryItems.forEach((i) => {
+      if (i.cantidad <= i.stock_minimo) {
+        count++;
+      } else if (i.fecha_vencimiento) {
+        const expDate = new Date(i.fecha_vencimiento);
+        if (expDate >= today && expDate <= in30Days) {
+          count++;
+        }
+      }
+    });
+    return count;
+  }, [inventoryItems]);
+
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: () => authService.signOut(),
@@ -165,6 +193,7 @@ export default function AdminLayout() {
     if (location.pathname.includes('/voluntarios')) return 'voluntarios';
     if (location.pathname.includes('/mapeo')) return 'mapeo';
     if (location.pathname.includes('/inventario')) return 'inventario';
+    if (location.pathname.includes('/analitica')) return 'analitica';
     return 'dashboard';
   }, [location.pathname]);
 
@@ -175,7 +204,8 @@ export default function AdminLayout() {
         voluntarios: '/admin/voluntarios',
         aprobacion: '/admin/aprobacion',
         mapeo: '/admin/mapeo',
-        inventario: '/admin/inventario'
+        inventario: '/admin/inventario',
+        analitica: '/admin/analitica'
       };
       navigate(routes[view] || '/admin');
     },
@@ -241,6 +271,22 @@ export default function AdminLayout() {
         >
           <IconInventario />
           {t('admin.nav.inventario')}
+          {inventoryAlertCount > 0 && (
+            <span className="admin-pill admin-pill-crit admin-nav-badge">{inventoryAlertCount}</span>
+          )}
+        </button>
+
+        <button
+          className={`admin-nav${currentView === 'analitica' ? ' on' : ''}`}
+          onClick={() => handleNav('analitica')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M18 17V9" />
+            <path d="M13 17V5" />
+            <path d="M8 17v-3" />
+          </svg>
+          {t('admin.nav.analitica')}
         </button>
 
         <div className="admin-nav dis">
@@ -401,6 +447,23 @@ export default function AdminLayout() {
                 >
                   <IconInventario />
                   <span>{t('admin.nav.inventario')}</span>
+                </div>
+                <div
+                  className="admin-mobile-menu-nav-item"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleNav('analitica');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ width: 17, height: 17, color: '#6b7280' }}>
+                    <path d="M3 3v18h18" />
+                    <path d="M18 17V9" />
+                    <path d="M13 17V5" />
+                    <path d="M8 17v-3" />
+                  </svg>
+                  <span>{t('admin.nav.analitica')}</span>
                 </div>
                 <div className="admin-mobile-menu-nav-item dis">
                   <IconPersonal />

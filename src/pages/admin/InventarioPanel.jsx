@@ -1,7 +1,6 @@
 // src/pages/admin/InventarioPanel.jsx
 // Módulo de Inventario de Insumos y Suministros (Fase 3).
-// Integración con Supabase para control de catálogo, bitácora de auditoría e inline editing.
-// Cumple 100% con los requerimientos visuales y operacionales de Fase3 Wireframes.dc.html.
+// Conexión real con Supabase + inline editing + diseño exacto de Claude Design.
 
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,7 +15,7 @@ const CATEGORIAS = [
   { value: 'alimentos', labelKey: 'admin.supply.food', color: '#e6a93a' },
   { value: 'medicinas', labelKey: 'admin.supply.medicine', color: '#b06fb0' },
   { value: 'higiene', labelKey: 'admin.supply.hygiene', color: '#2f7d4f' },
-  { value: 'colchones', labelKey: 'admin.supply.mattresses', color: '#7a86c8' },
+  { value: 'refugio', labelKey: 'admin.supply.mattresses', color: '#7a86c8' }, // Map mattresses to shelter
 ];
 
 export default function InventarioPanel() {
@@ -26,7 +25,7 @@ export default function InventarioPanel() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState('stock'); // 'stock' | 'movs' | 'charts'
+  const [activeTab, setActiveTab] = useState('stock'); // 'stock' | 'movs'
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [alertFilter, setAlertFilter] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +72,7 @@ export default function InventarioPanel() {
   const { data: movements = [], isLoading: loadingMovs } = useQuery({
     queryKey: ['inventario-movimientos'],
     queryFn: inventarioService.getMovements,
-    enabled: activeTab === 'movs' || activeTab === 'charts',
+    enabled: activeTab === 'movs',
     staleTime: 20_000,
   });
 
@@ -181,22 +180,6 @@ export default function InventarioPanel() {
     return { lowStock, soonExpired, totalUnits, totalItems: stockItems.length };
   }, [stockItems]);
 
-  // SVG Chart data
-  const chartData = useMemo(() => {
-    const categoriesCounts = { agua: 0, alimentos: 0, medicinas: 0, higiene: 0, colchones: 0 };
-    stockItems.forEach(i => {
-      if (categoriesCounts[i.categoria] !== undefined) {
-        categoriesCounts[i.categoria] += i.cantidad;
-      }
-    });
-    const total = Object.values(categoriesCounts).reduce((acc, curr) => acc + curr, 0) || 1;
-    return Object.keys(categoriesCounts).map(key => ({
-      key,
-      count: categoriesCounts[key],
-      pct: Math.round((categoriesCounts[key] / total) * 100),
-    }));
-  }, [stockItems]);
-
   return (
     <div className="admin-panel admin-fade" style={{ minHeight: 'calc(100vh - 84px)' }}>
       {/* Header Panel */}
@@ -205,7 +188,7 @@ export default function InventarioPanel() {
           <h1 className="text-xl font-extrabold text-navy margin-0 flex items-center gap-2">
             {t('admin.nav.inventario')}
             {(kpis.lowStock + kpis.soonExpired) > 0 && (
-              <span className="admin-pill admin-pill-crit font-extrabold text-[10px] px-2.5 py-0.5">
+              <span className="admin-pill admin-pill-crit font-extrabold text-[10px] px-2.5 py-0.5 animate-pulse">
                 {kpis.lowStock + kpis.soonExpired} {lang === 'es' ? 'alertas' : 'alerts'}
               </span>
             )}
@@ -221,7 +204,7 @@ export default function InventarioPanel() {
               setFormMode('item');
               setIsDrawerOpen(true);
             }}
-            className="admin-btn admin-btn-soft sm font-bold cursor-pointer"
+            className="admin-btn admin-btn-ghost sm font-bold cursor-pointer"
           >
             + {t('admin.supply.add')}
           </button>
@@ -258,16 +241,6 @@ export default function InventarioPanel() {
           }`}
         >
           {t('admin.supply.tab.movements')}
-        </button>
-        <button
-          onClick={() => setActiveTab('charts')}
-          className={`pb-3 font-bold text-xs cursor-pointer ${
-            activeTab === 'charts'
-              ? 'text-navy border-b-2 border-navy'
-              : 'text-text-tertiary hover:text-text-primary'
-          }`}
-        >
-          {t('admin.supply.tab.analytics')}
         </button>
       </div>
 
@@ -314,9 +287,7 @@ export default function InventarioPanel() {
           <div className="flex flex-wrap gap-2 items-center">
             <button
               onClick={() => setCategoryFilter('Todas')}
-              className={`btn xs font-bold px-3 cursor-pointer ${
-                categoryFilter === 'Todas' ? 'btn-sec' : 'btn-ghost'
-              }`}
+              className={`admin-chip cursor-pointer${categoryFilter === 'Todas' ? ' on' : ''}`}
             >
               Todas
             </button>
@@ -324,9 +295,7 @@ export default function InventarioPanel() {
               <button
                 key={cat.value}
                 onClick={() => setCategoryFilter(cat.value)}
-                className={`btn xs font-bold px-3 cursor-pointer ${
-                  categoryFilter === cat.value ? 'btn-sec' : 'btn-ghost'
-                }`}
+                className={`admin-chip cursor-pointer${categoryFilter === cat.value ? ' on' : ''}`}
               >
                 {t(cat.labelKey)}
               </button>
@@ -361,111 +330,108 @@ export default function InventarioPanel() {
             </select>
           </div>
 
-          {/* Inventory Table (Wireframe 1b layout) */}
-          <div className="bg-white border border-[#efe7d8] rounded-2xl overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse" style={{ display: 'table' }}>
-              <thead>
-                <tr className="border-b border-[#eef1f4] bg-[#fafbfc]">
-                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{lang === 'es' ? 'Ítem' : 'Item'}</th>
-                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{t('admin.supply.category')}</th>
-                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{lang === 'es' ? 'Cantidad' : 'Quantity'}</th>
-                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider">{lang === 'es' ? 'Lote / vence' : 'Lot / expiry'}</th>
-                  <th className="p-4 text-[10px] font-bold text-navy uppercase tracking-wider text-right">{t('admin.table.estado')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingStock ? (
-                  <tr>
-                    <td colSpan="5" className="p-12 text-center">
-                      <div className="flex justify-center py-6">
-                        <div className="w-5 h-5 rounded-full border-2 border-navy border-t-transparent animate-spin" />
-                      </div>
-                    </td>
-                  </tr>
-                ) : stockItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="p-12 text-center text-xs text-text-tertiary">
-                      {t('admin.supply.table.empty')}
-                    </td>
-                  </tr>
-                ) : (
-                  stockItems.map((item) => {
-                    const isLow = item.cantidad <= item.stock_minimo;
-                    const hasExpiry = !!item.fecha_vencimiento;
-                    
-                    // Expiration calculation (< 30 days)
-                    let isExpiring = false;
-                    if (hasExpiry) {
-                      const today = new Date();
-                      const in30 = new Date();
-                      in30.setDate(today.getDate() + 30);
-                      isExpiring = new Date(item.fecha_vencimiento) <= in30;
-                    }
+          {/* Inventory Table (Wireframe 1b grid layout) */}
+          <div className="admin-card" style={{ overflow: 'hidden', padding: 0 }}>
+            {/* Grid Header */}
+            <div className="admin-inv-grid" style={{ padding: '12px 18px', borderBottom: '1px solid #eef1f4', background: '#fafbfc' }}>
+              <span className="th">{lang === 'es' ? 'Ítem' : 'Item'}</span>
+              <span className="th col-hide">{t('admin.supply.category')}</span>
+              <span className="th">{lang === 'es' ? 'Cantidad' : 'Quantity'}</span>
+              <span className="th col-hide">{lang === 'es' ? 'Lote / vence' : 'Lot / expiry'}</span>
+              <span className="th text-right">{t('admin.table.estado')}</span>
+            </div>
 
-                    // Highlight colors matching wireframe 1b rows
-                    let rowBg = 'bg-white';
-                    let statusPill = <span className="admin-pill admin-pill-ok">OK</span>;
-                    if (isLow) {
-                      rowBg = 'bg-[#fffaf0]'; // Warm orange alert background
-                      statusPill = <span className="admin-pill admin-pill-warn">Bajo</span>;
-                    } else if (isExpiring) {
-                      rowBg = 'bg-[#fff5f4]'; // Warm red alert background
-                      statusPill = <span className="admin-pill admin-pill-crit">Vence</span>;
-                    }
+            {/* Grid Rows */}
+            {loadingStock ? (
+              <div className="p-12 text-center">
+                <div className="flex justify-center py-6">
+                  <div className="w-5 h-5 rounded-full border-2 border-navy border-t-transparent animate-spin" />
+                </div>
+              </div>
+            ) : stockItems.length === 0 ? (
+              <div className="p-12 text-center text-xs text-text-tertiary">
+                {t('admin.supply.table.empty')}
+              </div>
+            ) : (
+              stockItems.map((item) => {
+                const isLow = item.cantidad <= item.stock_minimo;
+                const hasExpiry = !!item.fecha_vencimiento;
+                
+                // Expiration calculation (< 30 days)
+                let isExpiring = false;
+                if (hasExpiry) {
+                  const today = new Date();
+                  const in30 = new Date();
+                  in30.setDate(today.getDate() + 30);
+                  isExpiring = new Date(item.fecha_vencimiento) <= in30;
+                }
 
-                    const isEditing = editingItemId === item.id;
+                // Highlight colors matching wireframe 1b rows
+                let rowBg = 'bg-white';
+                let statusPill = <span className="admin-pill admin-pill-ok">OK</span>;
+                if (isLow) {
+                  rowBg = 'bg-[#fffaf0]'; // Warm orange alert background
+                  statusPill = <span className="admin-pill admin-pill-warn">Stock bajo</span>;
+                } else if (isExpiring) {
+                  rowBg = 'bg-[#fff5f4]'; // Warm red alert background
+                  statusPill = <span className="admin-pill admin-pill-crit">Vence</span>;
+                }
 
-                    return (
-                      <tr key={item.id} className={`border-b border-[#eef1f4] hover:bg-[#fafbfc] transition-colors text-xs font-semibold ${rowBg}`}>
-                        <td className="p-4 text-text-primary font-bold">{item.nombre}</td>
-                        <td className="p-4 text-text-secondary">
-                          {t(CATEGORIAS.find(c => c.value === item.categoria)?.labelKey || 'admin.nav.inventario')}
-                        </td>
-                        <td className="p-4 text-text-primary">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              className="fld sm bg-white border border-navy rounded p-1 w-20 outline-none"
-                              style={{ height: 26, padding: '2px 6px' }}
-                              value={editingQty}
-                              onChange={(e) => setEditingQty(e.target.value)}
-                              onBlur={() => handleInlineQtyBlur(item, editingQty)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleInlineQtyBlur(item, editingQty);
-                                if (e.key === 'Escape') setEditingItemId(null);
-                              }}
-                              autoFocus
-                            />
-                          ) : (
-                            <span
-                              className="cursor-pointer hover:underline border-b border-dashed border-gray-400 pb-0.5"
-                              onClick={() => {
-                                setEditingItemId(item.id);
-                                setEditingQty(item.cantidad);
-                              }}
-                              title="Toca para editar cantidad"
-                            >
-                              <span className="font-extrabold">{item.cantidad}</span>{' '}
-                              <span className="text-[10px] text-text-tertiary">{item.unidad}</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4 text-text-secondary">
-                          <span className={isExpiring ? 'text-[#c0413b] font-bold' : ''}>
-                            {item.lote || 'L-1001'} ·{' '}
-                            {item.fecha_vencimiento 
-                              ? new Date(item.fecha_vencimiento).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US') 
-                              : '—'
-                            }
-                          </span>
-                        </td>
-                        <td className="p-4 text-right">{statusPill}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                const isEditing = editingItemId === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`admin-inv-grid admin-row ${rowBg} text-xs font-semibold`}
+                    style={{ padding: '12px 18px', borderBottom: '1px solid #eef1f4' }}
+                  >
+                    <div className="td font-bold text-text-primary">{item.nombre}</div>
+                    <div className="td text-text-secondary col-hide">
+                      {t(CATEGORIAS.find(c => c.value === item.categoria)?.labelKey || 'admin.nav.inventario')}
+                    </div>
+                    <div className="td text-text-primary">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          className="fld sm bg-white border border-navy rounded p-1 w-20 outline-none"
+                          style={{ height: 26, padding: '2px 6px' }}
+                          value={editingQty}
+                          onChange={(e) => setEditingQty(e.target.value)}
+                          onBlur={() => handleInlineQtyBlur(item, editingQty)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleInlineQtyBlur(item, editingQty);
+                            if (e.key === 'Escape') setEditingItemId(null);
+                          }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:underline border-b border-dashed border-gray-400 pb-0.5"
+                          onClick={() => {
+                            setEditingItemId(item.id);
+                            setEditingQty(item.cantidad);
+                          }}
+                          title="Toca para editar cantidad"
+                        >
+                          <span className="font-extrabold">{item.cantidad}</span>{' '}
+                          <span className="text-[10px] text-text-tertiary">{item.unidad}</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="td text-text-secondary col-hide">
+                      <span className={isExpiring ? 'text-[#c0413b] font-bold' : ''}>
+                        {item.lote || 'L-1001'} ·{' '}
+                        {item.fecha_vencimiento 
+                          ? new Date(item.fecha_vencimiento).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US') 
+                          : '—'
+                        }
+                      </span>
+                    </div>
+                    <div className="text-right">{statusPill}</div>
+                  </div>
+                );
+              })
+            )}
           </div>
           <p className="text-[11.5px] text-text-tertiary margin-0 font-medium italic">
             ✎ Tip: Puedes editar las cantidades de stock directamente haciendo clic sobre el número de cantidad de cualquier fila.
@@ -475,7 +441,7 @@ export default function InventarioPanel() {
 
       {/* ── TAB 2: AUDIT LOGS ── */}
       {activeTab === 'movs' && (
-        <div className="bg-white border border-[#efe7d8] rounded-2xl overflow-hidden shadow-sm">
+        <div className="admin-card" style={{ overflow: 'hidden', padding: 0 }}>
           <div className="p-4.5 border-b border-[#eef1f4] bg-[#fafbfc]">
             <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider">
               {t('admin.supply.recentLogs')}
@@ -537,106 +503,6 @@ export default function InventarioPanel() {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* ── TAB 3: SVG ANALYTICS ── */}
-      {activeTab === 'charts' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5.5">
-          {/* Card 1: Distribución por categoría (%) */}
-          <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
-            <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
-              Distribución por categoría (%)
-            </h3>
-
-            <div className="flex flex-row items-center gap-6.5 flex-wrap">
-              {/* Conic Donut SVG Visualizer */}
-              <div style={{ width: 92, height: 92, borderRadius: 99, background: 'conic-gradient(#003366 0 33%, #2f7d4f 33% 55%, #e6a93a 55% 72%, #7a86c8 72% 88%, #b06fb0 88% 100%)', flexShrink: 0, position: 'relative' }}>
-                <div style={{ position: 'absolute', margin: 26, width: 40, height: 40, backgroundColor: '#fff', borderRadius: 99 }} />
-              </div>
-
-              {/* Legend List */}
-              <div className="flex flex-col gap-2">
-                {chartData.map((item) => (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <i className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORIAS.find(c => c.value === item.key)?.color }} />
-                    <span className="text-xs font-bold text-text-secondary">
-                      {t(CATEGORIAS.find(c => c.value === item.key)?.labelKey)} {item.pct}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Unidades por categoría */}
-          <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
-            <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
-              Unidades por categoría
-            </h3>
-
-            <div style={{ height: 118, display: 'flex', alignItems: 'flex-end', gap: 11 }}>
-              {chartData.map((item) => {
-                const color = CATEGORIAS.find(c => c.value === item.key)?.color || '#003366';
-                return (
-                  <div key={item.key} className="flex-1 h-full flex flex-col justify-end items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-navy">{item.count}</span>
-                    {/* Dynamic Bar height based on percent */}
-                    <div
-                      className="w-full rounded-t-sm transition-all duration-500 ease-out"
-                      style={{
-                        height: `${Math.max(10, item.pct)}%`,
-                        backgroundColor: color,
-                      }}
-                    />
-                    <span className="text-[9px] font-bold text-text-tertiary truncate max-w-[50px]">
-                      {t(CATEGORIAS.find(c => c.value === item.key)?.labelKey).slice(0, 5)}.
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Card 3: Rotación Line Trend SVG */}
-          <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
-            <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
-              Rotación (últimos 7 días)
-            </h3>
-            <div style={{ height: 80, position: 'relative', display: 'flex', alignItems: 'flex-end' }}>
-              <svg viewBox="0 0 260 70" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-                <polyline
-                  points="0,52 43,40 86,46 130,26 173,32 216,16 260,22"
-                  fill="none"
-                  stroke="#003366"
-                  strokeWidth="2.5"
-                />
-              </svg>
-            </div>
-            <span className="text-[10px] font-semibold text-text-tertiary mt-2">
-              Entradas vs. salidas · tendencia de consumo
-            </span>
-          </div>
-
-          {/* Card 4: Alertas Activas */}
-          <div className="bg-white border border-[#efe7d8] rounded-2xl p-5.5 flex flex-col shadow-sm">
-            <h3 className="margin-0 font-bold text-xs text-navy uppercase tracking-wider mb-4">
-              Alertas activas
-            </h3>
-            <div className="flex-grow flex flex-col gap-2 max-h-[110px] overflow-y-auto pr-1">
-              {stockItems.filter(i => i.cantidad <= i.stock_minimo).slice(0, 3).map((item) => (
-                <div key={item.id} className="flex justify-between items-center text-xs font-bold py-1">
-                  <span className="text-text-primary">{item.nombre}</span>
-                  <span className="admin-pill admin-pill-crit">Stock bajo</span>
-                </div>
-              ))}
-              {stockItems.filter(i => i.cantidad <= i.stock_minimo).length === 0 && (
-                <span className="text-xs text-text-tertiary text-center py-6">
-                  Sin alertas de stock activas.
-                </span>
-              )}
-            </div>
           </div>
         </div>
       )}

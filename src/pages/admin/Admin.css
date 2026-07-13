@@ -1517,3 +1517,24 @@
     transition: none !important;
   }
 }
+
+/* ── Custom Grid Layout for Inventory (Fase 3) ── */
+.admin-inv-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr .8fr 1.1fr .8fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-row {
+  cursor: pointer;
+  transition: .12s;
+}
+
+.admin-row:hover {
+  background: #f6f9fd;
+}
+
+.admin-row.sel {
+  background: #eef3fb;
+}
