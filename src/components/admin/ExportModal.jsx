@@ -72,7 +72,7 @@ export function ExportModal({ volunteers, userEmail, onClose }) {
       ref={setDialogRef}
       onClick={handleDialogClick}
       onCancel={handleClose}
-      className="backdrop:bg-black/45 backdrop:backdrop-blur-sm"
+      className="fixed inset-0 m-auto p-0 bg-white border border-[#efe7d8] rounded-2xl shadow-2xl focus:outline-none backdrop:bg-black/45 backdrop:backdrop-blur-sm"
     >
       <div className="p-6 sm:p-8 max-w-[500px]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
