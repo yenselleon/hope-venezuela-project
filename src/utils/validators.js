@@ -80,8 +80,13 @@ export function validateStep1(data) {
   const tel = validatePhone(data.telefono);
   if (!tel.valid) { errors.telefono = tel.error; valid = false; }
 
-  const estado = validateRequired(data.estado, 'Selecciona tu estado.');
-  if (!estado.valid) { errors.estado = estado.error; valid = false; }
+  if (data.extranjero) {
+    const pais = validateRequired(data.pais, 'Indica tu país de procedencia.');
+    if (!pais.valid) { errors.pais = pais.error; valid = false; }
+  } else {
+    const estado = validateRequired(data.estado, 'Selecciona tu estado.');
+    if (!estado.valid) { errors.estado = estado.error; valid = false; }
+  }
 
   const profesion = validateRequired(data.profesion, 'Indica tu profesión u oficio.');
   if (!profesion.valid) { errors.profesion = profesion.error; valid = false; }

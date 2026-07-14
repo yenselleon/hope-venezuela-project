@@ -15,6 +15,8 @@ const INITIAL_STEP1 = {
   estado: '',
   municipio: '',
   profesion: '',
+  extranjero: false,
+  pais: '',
 };
 
 const INITIAL_STEP2 = {

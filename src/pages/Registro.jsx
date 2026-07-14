@@ -275,35 +275,81 @@ export function Registro() {
                     })}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3.5">
+                <div>
+                  <label className="tile flex items-center gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      id="extranjero-checkbox"
+                      className="hidden peer"
+                      checked={!!step1.extranjero}
+                      onChange={(e) => {
+                        updateField(1, 'extranjero', e.target.checked);
+                        if (e.target.checked) {
+                          updateField(1, 'estado', '');
+                          updateField(1, 'municipio', '');
+                        } else {
+                          updateField(1, 'pais', '');
+                        }
+                      }}
+                    />
+                    <span className={cn(
+                      "tick flex-shrink-0 w-[18px] h-[18px] border-2 border-[#dcdfd8] rounded flex items-center justify-center transition-colors",
+                      step1.extranjero ? "bg-navy border-navy" : "bg-white"
+                    )}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={cn("transition-opacity", step1.extranjero ? "opacity-100" : "opacity-0")}>
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span className="font-semibold text-xs md:text-[13px] leading-relaxed text-text-primary">
+                      {t('campo.extranjero')}
+                    </span>
+                  </label>
+                </div>
+                {step1.extranjero ? (
                   <div>
                     <label className="lbl">
-                      {t('campo.estado')} <span className="req">*</span>
+                      {t('campo.pais')} <span className="req">*</span>
                     </label>
-                    <select
-                      className={cn("fld cursor-pointer", errors.estado && "bad")}
-                      value={step1.estado}
-                      onChange={(e) => updateField(1, 'estado', e.target.value)}
-                    >
-                      {ESTADOS_VENEZUELA.map((est) => (
-                        <option key={est.value} value={est.value}>
-                          {est.label}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.estado && <div className="err on">{errors.estado}</div>}
-                  </div>
-                  <div>
-                    <label className="lbl">{t('campo.municipio')}</label>
                     <input
                       type="text"
-                      className="fld"
-                      placeholder="Ej. Vargas"
-                      value={step1.municipio}
-                      onChange={(e) => updateField(1, 'municipio', e.target.value)}
+                      className={cn("fld", errors.pais && "bad")}
+                      placeholder={lang === 'es' ? 'Ej. España, Estados Unidos, Colombia…' : 'e.g. Spain, United States, Colombia…'}
+                      value={step1.pais}
+                      onChange={(e) => updateField(1, 'pais', e.target.value)}
                     />
+                    {errors.pais && <div className="err on">{errors.pais}</div>}
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="lbl">
+                        {t('campo.estado')} <span className="req">*</span>
+                      </label>
+                      <select
+                        className={cn("fld cursor-pointer", errors.estado && "bad")}
+                        value={step1.estado}
+                        onChange={(e) => updateField(1, 'estado', e.target.value)}
+                      >
+                        {ESTADOS_VENEZUELA.map((est) => (
+                          <option key={est.value} value={est.value}>
+                            {est.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.estado && <div className="err on">{errors.estado}</div>}
+                    </div>
+                    <div>
+                      <label className="lbl">{t('campo.municipio')}</label>
+                      <input
+                        type="text"
+                        className="fld"
+                        placeholder="Ej. Vargas"
+                        value={step1.municipio}
+                        onChange={(e) => updateField(1, 'municipio', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="lbl">{t('campo.profesion')}</label>
                   <input

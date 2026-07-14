@@ -1517,3 +1517,49 @@
     transition: none !important;
   }
 }
+
+/* ── Custom Grid Layout for Inventory (Fase 3) ── */
+.admin-inv-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr .8fr 1.1fr .8fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-row {
+  cursor: pointer;
+  transition: .12s;
+}
+
+.admin-row:hover {
+  background: #f6f9fd;
+}
+
+.admin-row.sel {
+  background: #eef3fb;
+}
+
+/* ── Segmented Control (Mapa / Lista) ── */
+.admin-seg-group {
+  display: inline-flex;
+  background: #eef1f4;
+  padding: 3px;
+  border-radius: 9px;
+  border: none;
+}
+
+.admin-segbtn {
+  border: 0;
+  background: none;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font: 700 12px Inter, system-ui, sans-serif;
+  color: #6B7280;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.admin-segbtn.on {
+  background: #003366;
+  color: #fff;
+}

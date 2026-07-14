@@ -31,6 +31,16 @@ export const authService = {
    * Obtiene la sesión actual (si existe).
    */
   getSession: async () => {
+    if (import.meta.env.DEV) {
+      return {
+        user: {
+          email: 'voluntariosrsg@gmail.com',
+          user_metadata: { role: 'super_admin' },
+          app_metadata: { role: 'super_admin' },
+          role: 'authenticated',
+        }
+      };
+    }
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw new Error(error.message);
     return session;
@@ -41,6 +51,18 @@ export const authService = {
    * Retorna la función de cleanup para useEffect.
    */
   onAuthStateChange: (callback) => {
+    if (import.meta.env.DEV) {
+      // Sincronizar inmediatamente el callback con la sesión mock
+      callback({
+        user: {
+          email: 'voluntariosrsg@gmail.com',
+          user_metadata: { role: 'super_admin' },
+          app_metadata: { role: 'super_admin' },
+          role: 'authenticated',
+        }
+      });
+      return () => {};
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => callback(session)
     );

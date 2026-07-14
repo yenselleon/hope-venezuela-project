@@ -22,6 +22,9 @@ const AdminLayout = lazy(() => import('@/components/admin/AdminLayout'));
 const DashboardPanel = lazy(() => import('@/pages/admin/DashboardPanel'));
 const VoluntariosPanel = lazy(() => import('@/pages/admin/VoluntariosPanel'));
 const AprobacionPanel = lazy(() => import('@/pages/admin/AprobacionPanel'));
+const MapeoPanel = lazy(() => import('@/pages/admin/MapeoPanel'));
+const InventarioPanel = lazy(() => import('@/pages/admin/InventarioPanel'));
+const AnaliticaPanel = lazy(() => import('@/pages/admin/AnaliticaPanel'));
 
 // Inicializar el cliente de TanStack Query
 const queryClient = new QueryClient({
@@ -92,6 +95,9 @@ function AppRoutes() {
         <Route index element={<Suspense fallback={<AdminLoader />}><DashboardPanel /></Suspense>} />
         <Route path="voluntarios" element={<Suspense fallback={<AdminLoader />}><VoluntariosPanel /></Suspense>} />
         <Route path="aprobacion" element={<Suspense fallback={<AdminLoader />}><AprobacionPanel /></Suspense>} />
+        <Route path="mapeo" element={<Suspense fallback={<AdminLoader />}><MapeoPanel /></Suspense>} />
+        <Route path="inventario" element={<Suspense fallback={<AdminLoader />}><InventarioPanel /></Suspense>} />
+        <Route path="analitica" element={<Suspense fallback={<AdminLoader />}><AnaliticaPanel /></Suspense>} />
       </Route>
 
       {/* Fallback */}
