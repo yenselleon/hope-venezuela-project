@@ -1,15 +1,22 @@
 // src/pages/admin/MapeoPanel.jsx
-// Módulo de Despliegue y Mapeo interactivo (Fase 3).
-// Integración con Leaflet + OpenStreetMap y panel lateral de asignación rápida por zona.
-// Cumple 100% con los requerimientos visuales y operacionales de Fase3 Wireframes.dc.html.
+// Módulo de Mapeo y Despliegue de Voluntarios (Fase 3).
+// Conexión real con Supabase + mapa Leaflet corregido + diseño exacto de Claude Design.
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18nStore } from '@/stores/useI18nStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { volunteerService } from '@/services/volunteerService';
 import { zonasService } from '@/services/zonasService';
 import './Admin.css';
+
+function getInitials(vol) {
+  if (!vol) return '??';
+  const name = vol.nombre || '';
+  const parts = name.split(/[\s.]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function MapeoPanel() {
   const t = useI18nStore((s) => s.t);
@@ -67,14 +74,22 @@ export default function MapeoPanel() {
     return counts;
   }, [zones, volunteers]);
 
+  // Total desplegados
+  const deployedCount = useMemo(() => {
+    return volunteers.filter(v => !!v.zona_asignada).length;
+  }, [volunteers]);
+
+  // Voluntarios sin asignar
   const unassignedCount = useMemo(() => {
     return volunteers.filter((v) => !v.zona_asignada).length;
   }, [volunteers]);
 
-  // Lista de voluntarios asignados a la zona seleccionada
+  // Voluntarios en la zona seleccionada
   const volunteersInSelectedZone = useMemo(() => {
     if (selectedZone === 'Todas') return [];
-    if (selectedZone === 'Sin Asignar') return volunteers.filter((v) => !v.zona_asignada);
+    if (selectedZone === 'Sin Asignar') {
+      return volunteers.filter((v) => !v.zona_asignada);
+    }
     return volunteers.filter((v) => v.zona_asignada === selectedZone);
   }, [volunteers, selectedZone]);
 
@@ -88,17 +103,27 @@ export default function MapeoPanel() {
     );
   }, [volunteers, assignSearchQuery]);
 
+  // Seleccionar automáticamente la primera zona al cargar para poblar el sidebar (Estilo Claude Design)
+  useEffect(() => {
+    if (selectedZone === 'Todas' && zones.length > 0) {
+      const target = zones.find(z => z.nombre.includes('Los Teques')) || zones[0];
+      if (target) {
+        setSelectedZone(target.nombre);
+      }
+    }
+  }, [zones, selectedZone]);
+
   // Inicializar Leaflet Map
   useEffect(() => {
     if (viewMode !== 'map' || loadingZones || zones.length === 0 || !window.L || mapInstance.current) return;
 
     // Centrar en la región central (La Guaira/Caracas)
     const centerLat = 10.4600;
-    const centerLng = -67.0500;
+    const centerLng = -66.9500;
 
     const map = window.L.map(mapRef.current, {
       center: [centerLat, centerLng],
-      zoom: 9.5,
+      zoom: 9.3,
       zoomControl: true,
     });
 
@@ -137,38 +162,38 @@ export default function MapeoPanel() {
         html: `
           <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;">
             <div style="
-              width: 30px;
-              height: 30px;
-              border-radius: 99px 99px 99px 2px;
+              width: 34px;
+              height: 34px;
+              border-radius: 99px 99px 99px 3px;
               transform: rotate(45deg);
-              background: ${isLow ? '#c0413b' : '#003366'};
+              background: ${isLow ? '#b02a24' : '#003366'};
               display: flex;
               align-items: center;
               justify-content: center;
-              box-shadow: 0 2px 6px rgba(0,0,0,.25);
-              border: 2px solid #fff;
+              box-shadow: 0 3px 8px rgba(0,0,0,.28);
+              border: 2.5px solid #fff;
             ">
               <b style="
                 transform: rotate(-45deg);
                 color: #fff;
-                font: 800 12px 'Inter', sans-serif;
+                font: 800 13px 'Inter', sans-serif;
                 display: block;
               ">${count}</b>
             </div>
             <span style="
-              font: 700 9px 'Inter', sans-serif;
-              color: ${isLow ? '#b02a24' : '#003366'};
+              font: 700 10px 'Inter', sans-serif;
+              color: #374151;
               background: #fff;
-              padding: 1.5px 5.5px;
-              border-radius: 4px;
+              padding: 2px 6px;
+              border-radius: 5px;
               margin-top: 5px;
               box-shadow: 0 1px 3px rgba(0,0,0,0.15);
               white-space: nowrap;
             ">${zone.nombre.split(' · ')[1] || zone.nombre}</span>
           </div>
         `,
-        iconSize: [60, 50],
-        iconAnchor: [30, 30],
+        iconSize: [60, 55],
+        iconAnchor: [30, 34],
       });
 
       const marker = window.L.marker([zone.lat, zone.lng], { icon })
@@ -199,52 +224,39 @@ export default function MapeoPanel() {
 
   return (
     <div className="admin-panel admin-fade" style={{ minHeight: 'calc(100vh - 84px)' }}>
-      {/* Top Controls Header */}
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-4 border-b border-[#eef1f4] pb-4.5">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-extrabold text-navy margin-0">
-            {selectedZone === 'Todas' ? t('admin.nav.mapeo.title') : selectedZone}
-          </h1>
-          {selectedZone !== 'Todas' && (
-            <button
-              onClick={() => setSelectedZone('Todas')}
-              className="admin-btn admin-btn-soft xs font-bold cursor-pointer"
-            >
-              ← Volver
-            </button>
-          )}
+      {/* ── CONTROL ROW (Mapa/Lista, total counters, zone dropdown selector) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14, flexWrap: 'wrap' }}>
+        {/* Segmented Toggle Group */}
+        <div className="admin-seg-group">
+          <button
+            onClick={() => setViewMode('map')}
+            className={`admin-segbtn${viewMode === 'map' ? ' on' : ''}`}
+          >
+            {lang === 'es' ? 'Mapa' : 'Map'}
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`admin-segbtn${viewMode === 'list' ? ' on' : ''}`}
+          >
+            {lang === 'es' ? 'Lista' : 'List'}
+          </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="inline-flex bg-[#eef0f3] rounded-lg p-0.5 border border-[#e2ddd0]">
-            <button
-              onClick={() => setViewMode('map')}
-              className={`btn xs font-bold px-3 cursor-pointer ${
-                viewMode === 'map' ? 'btn-pri rounded-md' : 'text-[#6B7280]'
-              }`}
-            >
-              {t('admin.mapeo.viewMap')}
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`btn xs font-bold px-3 cursor-pointer ${
-                viewMode === 'list' ? 'btn-pri rounded-md' : 'text-[#6B7280]'
-              }`}
-            >
-              {t('admin.mapeo.viewList')}
-            </button>
-          </div>
+        {/* Counts summary label */}
+        <span style={{ font: '600 12.5px Inter, system-ui, sans-serif', color: '#6B7280' }}>
+          {zones.length} {lang === 'es' ? 'zonas' : 'zones'} · {deployedCount} {lang === 'es' ? 'desplegados' : 'deployed'}
+        </span>
 
-          {/* Zones Dropdown */}
+        {/* Dropdown filter aligned right */}
+        <div style={{ marginLeft: 'auto' }}>
           <select
             value={selectedZone}
             onChange={(e) => setSelectedZone(e.target.value)}
             className="fld sm cursor-pointer bg-white"
             style={{ width: 'auto', minWidth: 150, height: 32, fontSize: 11.5 }}
           >
-            <option value="Todas">Todas las zonas</option>
-            <option value="Sin Asignar">Sin Asignar</option>
+            <option value="Todas">{lang === 'es' ? 'Zona: Todas' : 'Zone: All'}</option>
+            <option value="Sin Asignar">{lang === 'es' ? 'Zona: Sin Asignar' : 'Zone: Unassigned'}</option>
             {zones.map((z) => (
               <option key={z.id} value={z.nombre}>
                 {z.nombre}
@@ -255,14 +267,20 @@ export default function MapeoPanel() {
       </div>
 
       {isLoading ? (
-        <div className="admin-skeleton" style={{ height: 440, borderRadius: 16 }} />
+        <div className="admin-skeleton" style={{ height: 500, borderRadius: 16 }} />
       ) : (
         <div className="flex flex-col lg:flex-row gap-5.5">
-          {/* MAP / LIST AREA */}
-          <div className="flex-grow bg-white border border-[#efe7d8] rounded-2xl shadow-sm overflow-hidden min-h-[460px] flex flex-col relative">
+          
+          {/* ── MAP / LIST VISUALIZER CONTAINER ── */}
+          <div
+            className="flex-grow bg-white border border-[#efe7d8] rounded-2xl shadow-sm overflow-hidden flex flex-col relative"
+            style={{ minHeight: 460, height: 500 }}
+          >
             {viewMode === 'map' ? (
               <>
-                <div ref={mapRef} style={{ width: '100%', height: '100%', flexGrow: 1, zIndex: 5 }} />
+                {/* Leaflet map object */}
+                <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 5 }} />
+
                 {/* Coverage Legend Box */}
                 <div
                   style={{
@@ -280,19 +298,21 @@ export default function MapeoPanel() {
                     border: '1px solid #efe7d8',
                   }}
                 >
-                  <span className="th text-[9.5px] font-bold text-text-primary block mb-0.5">Cobertura</span>
+                  <span className="admin-th" style={{ fontSize: '9.5px', color: '#111827', display: 'block', marginBottom: '2px' }}>
+                    Cobertura
+                  </span>
                   <div className="flex items-center gap-2">
                     <i className="w-2.5 h-2.5 rounded-full bg-[#003366]" />
                     <span className="text-[10px] font-semibold text-text-secondary">Suficiente (≥ 20)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <i className="w-2.5 h-2.5 rounded-full bg-[#c0413b]" />
+                    <i className="w-2.5 h-2.5 rounded-full bg-[#b02a24]" />
                     <span className="text-[10px] font-semibold text-text-secondary">Baja — priorizar (&lt; 20)</span>
                   </div>
                 </div>
               </>
             ) : (
-              <div className="p-5.5 overflow-y-auto">
+              <div className="p-5.5 overflow-y-auto flex-grow">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {zones.map((zone) => {
                     const count = zoneCounts[zone.nombre] || 0;
@@ -342,16 +362,14 @@ export default function MapeoPanel() {
             )}
           </div>
 
-          {/* SIDEBAR OPERATIONAL PANEL */}
+          {/* ── SIDEBAR OPERATIONAL PANEL (Detailed layout) ── */}
           <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col gap-4">
-            
-            {/* ── CASE 1: SPECIFIC ZONE SELECTED ── */}
             {selectedZone !== 'Todas' ? (
-              <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 shadow-sm flex flex-col gap-4.5">
+              <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 shadow-sm flex flex-col gap-4.5" style={{ minHeight: 460 }}>
                 {/* Zone Header and Status */}
                 <div className="flex items-center justify-between">
                   <h3 className="margin-0 font-extrabold text-sm text-text-primary truncate" style={{ maxWidth: '170px' }}>
-                    {selectedZone}
+                    {selectedZone === 'Sin Asignar' ? t('admin.mapeo.unassigned') : selectedZone}
                   </h3>
                   {selectedZone === 'Sin Asignar' ? (
                     <span className="admin-pill admin-pill-neutral font-bold text-[10px]">Sin asignar</span>
@@ -364,7 +382,7 @@ export default function MapeoPanel() {
                   )}
                 </div>
 
-                {/* KPI stats */}
+                {/* KPI stats (desplegados y requeridos) */}
                 <div className="flex gap-3">
                   <div className="admin-card flex-1 p-3 bg-[#faf9f6] border border-[#efe7d8] rounded-xl">
                     <span className="text-[20px] font-extrabold text-navy block leading-none">
@@ -386,30 +404,39 @@ export default function MapeoPanel() {
                   )}
                 </div>
 
-                {/* Assigned Volunteers in this Zone */}
+                {/* Ya en esta zona List (Visual style matching Claude Design) */}
                 <div className="flex flex-col gap-2">
-                  <span className="th text-[9.5px] font-bold text-text-tertiary">
+                  <span className="admin-th text-[9.5px] font-bold text-text-tertiary">
                     {lang === 'es' ? `Ya en esta zona (${volunteersInSelectedZone.length})` : `Already in zone (${volunteersInSelectedZone.length})`}
                   </span>
-                  <div className="max-h-[140px] overflow-y-auto flex flex-col gap-2 pr-1">
+                  <div className="max-h-[140px] overflow-y-auto flex flex-col gap-1 pr-1">
                     {volunteersInSelectedZone.map((vol) => (
-                      <div key={vol.id} className="flex items-center justify-between p-2.5 bg-[#fafbfc] border border-[#e7eaef] rounded-xl">
-                        <div className="min-w-0 flex-grow pr-1.5">
-                          <div className="text-xs font-bold text-text-primary truncate">{vol.nombre}</div>
-                          <div className="text-[9.5px] text-text-tertiary mt-0.5 truncate">
-                            {vol.areas?.join(', ') || 'General'}
-                          </div>
+                      <div
+                        key={vol.id}
+                        className="admin-row"
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid #f2f4f7' }}
+                      >
+                        <div className="admin-avatar" style={{ width: 28, height: 28, fontSize: 10, flexShrink: 0 }}>
+                          {getInitials(vol)}
                         </div>
+                        <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
+                          <div className="text-xs font-bold text-text-primary truncate">{vol.nombre}</div>
+                          <span style={{ fontSize: 10, color: '#6b7280' }}>
+                            {(vol.areas || ['General']).join(', ')} · activo
+                          </span>
+                        </div>
+                        <span className="admin-pill admin-pill-ok" style={{ fontSize: 9.5 }}>Activo</span>
                         <button
                           onClick={() => handleRemoveAssign(vol.id)}
-                          className="text-[#c0413b] hover:text-[#b02a24] text-[10.5px] font-bold bg-transparent border-0 outline-none cursor-pointer px-1.5 py-0.5"
+                          style={{ border: 0, background: 'none', color: '#c0413b', cursor: 'pointer', fontSize: 12, padding: '0 4px' }}
+                          title="Quitar asignación"
                         >
                           ✕
                         </button>
                       </div>
                     ))}
                     {volunteersInSelectedZone.length === 0 && (
-                      <span className="text-xs text-text-tertiary text-center py-4">
+                      <span className="text-xs text-text-tertiary text-center py-6">
                         Sin voluntarios asignados.
                       </span>
                     )}
@@ -421,36 +448,45 @@ export default function MapeoPanel() {
                 {/* Assign Available Volunteer Form Section */}
                 {selectedZone !== 'Sin Asignar' && (
                   <div className="flex flex-col gap-2.5">
-                    <span className="th text-[9.5px] font-bold text-text-tertiary">
-                      {lang === 'es' ? 'Asignar voluntario' : 'Assign volunteer'}
+                    <span className="admin-th text-[9.5px] font-bold text-text-tertiary">
+                      {lang === 'es' ? 'Asignar voluntario disponible' : 'Assign available volunteer'}
                     </span>
                     <input
                       type="text"
                       className="fld sm bg-[#faf9f6]"
                       placeholder={lang === 'es' ? 'Buscar disponible…' : 'Search available…'}
-                      style={{ height: 32, fontSize: 11.5 }}
+                      style={{ height: 32, fontSize: 11.5, border: '1px solid #efe7d8', borderRadius: '8px' }}
                       value={assignSearchQuery}
                       onChange={(e) => setAssignSearchQuery(e.target.value)}
                     />
-                    <div className="max-h-[160px] overflow-y-auto flex flex-col gap-2 pr-1">
+                    
+                    <div className="max-h-[160px] overflow-y-auto flex flex-col gap-1 pr-1">
                       {availableVolunteers.slice(0, 10).map((vol) => (
-                        <div key={vol.id} className="p-2.5 bg-[#faf9f6] border border-[#efe7d8] rounded-xl flex items-center justify-between">
-                          <div className="min-w-0 pr-1.5">
+                        <div
+                          key={vol.id}
+                          className="admin-row"
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f2f4f7' }}
+                        >
+                          <div className="admin-avatar" style={{ width: 28, height: 28, fontSize: 10, flexShrink: 0 }}>
+                            {getInitials(vol)}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
                             <div className="text-xs font-bold text-text-primary truncate">{vol.nombre}</div>
-                            <div className="text-[9.5px] text-text-tertiary mt-0.5 truncate">
-                              {vol.areas?.join(', ') || 'General'}
-                            </div>
+                            <span style={{ fontSize: 10, color: '#6b7280' }}>
+                              {(vol.areas || ['General']).join(', ')} · sin asignar
+                            </span>
                           </div>
                           <button
                             onClick={() => handleQuickAssign(vol.id, selectedZone)}
-                            className="btn xs btn-ok px-2.5 font-bold cursor-pointer"
+                            className="admin-btn admin-btn-pri sm font-bold cursor-pointer"
+                            style={{ padding: '4px 8px', fontSize: 10.5, height: 'auto', flexShrink: 0 }}
                           >
                             + Asignar
                           </button>
                         </div>
                       ))}
                       {availableVolunteers.length === 0 && (
-                        <span className="text-xs text-text-tertiary text-center py-4">
+                        <span className="text-xs text-text-tertiary text-center py-6">
                           No hay voluntarios disponibles.
                         </span>
                       )}
@@ -459,37 +495,28 @@ export default function MapeoPanel() {
                 )}
               </div>
             ) : (
-              // ── CASE 2: GENERAL SUMMARY (Todas selected) ──
-              <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+              // Case: No zone selected (Resumen Global)
+              <div className="bg-white border border-[#efe7d8] rounded-2xl p-5 shadow-sm flex flex-col gap-4.5" style={{ minHeight: 460 }}>
                 <h3 className="margin-0 font-extrabold text-sm text-navy uppercase tracking-wider">
                   Resumen Global
                 </h3>
-
                 <div className="flex flex-col gap-3">
-                  <div className="p-3 bg-[#faf9f6] border border-[#efe7d8] rounded-xl">
-                    <span className="text-[10px] font-bold text-text-tertiary uppercase">Desplegados</span>
-                    <b className="text-2xl font-extrabold text-navy block mt-1">
-                      {volunteers.length - unassignedCount}
-                    </b>
+                  <div className="admin-card p-4 bg-[#faf9f6] border border-[#efe7d8] rounded-2xl flex flex-col">
+                    <span className="text-[24px] font-extrabold text-[#003366] leading-none">{deployedCount}</span>
+                    <span className="text-[10px] font-bold text-text-tertiary uppercase mt-2">Desplegados</span>
                   </div>
-                  <div className="p-3 bg-[#faf9f6] border border-[#efe7d8] rounded-xl">
-                    <span className="text-[10px] font-bold text-text-tertiary uppercase">Sin Asignar</span>
-                    <b className="text-2xl font-extrabold text-[#c0413b] block mt-1">
-                      {unassignedCount}
-                    </b>
+                  <div className="admin-card p-4 bg-[#faf9f6] border border-[#efe7d8] rounded-2xl flex flex-col">
+                    <span className="text-[24px] font-extrabold text-[#c0413b] leading-none">{unassignedCount}</span>
+                    <span className="text-[10px] font-bold text-text-tertiary uppercase mt-2">Sin asignar</span>
                   </div>
                 </div>
-
-                <div className="h-0.5 bg-[#eef1f4]" />
-
-                <div className="text-center py-8">
-                  <span className="text-xs text-text-tertiary block leading-relaxed px-4">
-                    Selecciona una zona del mapa o de la lista de la izquierda para ver su detalle y realizar asignaciones operativas en un toque.
-                  </span>
-                </div>
+                <p className="text-[11.5px] text-text-tertiary leading-relaxed mt-2">
+                  Selecciona una zona del mapa o de la lista de la izquierda para ver su detalle y realizar asignaciones operativas en un toque.
+                </p>
               </div>
             )}
           </div>
+
         </div>
       )}
     </div>

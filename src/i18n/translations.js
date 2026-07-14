@@ -514,7 +514,7 @@ const translations = {
 
   // Navegación
   'admin.nav.mapeo': { es: 'Despliegue', en: 'Deployment' },
-  'admin.nav.mapeo.title': { es: 'Despliegue y Mapeo', en: 'Deployment & Mapping' },
+  'admin.nav.mapeo.title': { es: 'Mapeo por zona', en: 'Zone Mapping' },
   'admin.nav.analitica': { es: 'Analítica', en: 'Analytics' },
   'admin.nav.analitica.title': { es: 'Analítica de insumos', en: 'Supply Analytics' },
 
