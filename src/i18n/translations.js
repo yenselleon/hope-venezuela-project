@@ -8,6 +8,7 @@ const translations = {
   'nav.plan': { es: 'Plan de acción', en: 'Action plan' },
   'nav.impact': { es: 'Impacto', en: 'Impact' },
   'nav.help': { es: 'Cómo ayudar', en: 'Get involved' },
+  'nav.admin': { es: 'Acceso Admin', en: 'Admin Access' },
 
   // ─── CTAs ─────────────────────────────────────────────────────────────────
   'cta.volunteer': { es: 'Quiero ser voluntario', en: 'Become a volunteer' },

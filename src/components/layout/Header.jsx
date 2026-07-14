@@ -83,6 +83,17 @@ export function Header() {
             </Link>
           </div>
 
+          {/* Botón de Acceso Admin */}
+          <Link
+            to="/admin"
+            className="flex items-center h-[34px] px-3.5 rounded-full border border-input-border hover:border-navy hover:bg-info-bg !text-text-secondary hover:!text-navy font-semibold text-[11px] sm:text-xs transition-colors shrink-0 select-none"
+          >
+            <svg className="w-3.5 h-3.5 mr-1.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            <span>{t('nav.admin')}</span>
+          </Link>
+
           {/* Selector de idioma */}
           <LanguageSwitcher />
         </div>
