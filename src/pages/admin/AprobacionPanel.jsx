@@ -15,14 +15,8 @@ import { volunteerService } from '@/services/volunteerService';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import './Admin.css';
 
-// ── Demo pending data ────────────────────────────────────────
-const DEMO_PENDING = [
-  { id: 1, nombre: 'María González', cedula: '12345678', edad: 34, genero: 'Femenino', areas: ['Salud'], certificaciones: ['Primeros auxilios'], vehiculo: '', zonas: ['Vargas'], estado_voluntario: 'pendiente', turnos: ['Lun–Vie · mañana'], created_at: '2025-07-01T10:00:00Z' },
-  { id: 3, nombre: 'Ana Rodríguez', cedula: '29019033', edad: 16, genero: 'Femenino', areas: ['Familias'], certificaciones: [], vehiculo: '', zonas: ['Aragua'], estado_voluntario: 'pendiente', turnos: ['Tardes'], created_at: '2025-07-01T12:00:00Z' },
-  { id: 6, nombre: 'Pedro Silva', cedula: '10993410', edad: 44, genero: 'Masculino', areas: ['Soporte a rescatistas'], certificaciones: ['Rescate urbano'], vehiculo: 'PickUp', zonas: ['Vargas'], estado_voluntario: 'pendiente', turnos: ['24h · guardias'], created_at: '2025-07-01T15:00:00Z' },
-  { id: 7, nombre: 'Marta León', cedula: '22781540', edad: 31, genero: 'Femenino', areas: ['Logística'], certificaciones: [], vehiculo: '', zonas: ['Miranda'], estado_voluntario: 'pendiente', turnos: ['Lun–Vie · mañana'], created_at: '2025-07-01T16:00:00Z' },
-  { id: 8, nombre: 'Jorge Díaz', cedula: '16340982', edad: 37, genero: 'Masculino', areas: ['Transporte'], certificaciones: [], vehiculo: 'Camión', zonas: ['Vargas'], estado_voluntario: 'pendiente', turnos: ['Fines de semana'], created_at: '2025-07-01T17:00:00Z' },
-];
+// ── Real data ────────────────────────────────────────────────
+const EMPTY_ARRAY = [];
 
 // ── Helpers ──────────────────────────────────────────────────
 function getInitials(name) {
@@ -123,9 +117,8 @@ export default function AprobacionPanel() {
     queryFn: () => volunteerService.getAll({ estado_voluntario: 'pendiente', pageSize: 50 }),
     staleTime: 15_000,
   });
-
-  const pendingList = pendingResult?.data ?? DEMO_PENDING;
-  const pendingCount = pendingResult?.total ?? DEMO_PENDING.length;
+  const pendingList = pendingResult?.data ?? EMPTY_ARRAY;
+  const pendingCount = pendingResult?.total ?? 0;
 
   // Approve mutation
   const approveMutation = useMutation({
@@ -178,7 +171,7 @@ export default function AprobacionPanel() {
   );
 
   const selectedIds = useMemo(() =>
-    Object.keys(selected).filter((k) => selected[k]).map(Number),
+    Object.keys(selected).filter((k) => selected[k]),
     [selected]
   );
 

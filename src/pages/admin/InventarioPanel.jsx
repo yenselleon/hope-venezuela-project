@@ -33,7 +33,6 @@ export default function InventarioPanel() {
 
   // Cajón Lateral / Modal Overlay
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [formMode, setFormMode] = useState('item'); // 'item' | 'movement'
 
   // Inline Editing Quantity state
   const [editingItemId, setEditingItemId] = useState(null);
@@ -168,7 +167,6 @@ export default function InventarioPanel() {
           </button>
           <button
             onClick={() => {
-              setFormMode('item');
               setIsDrawerOpen(true);
             }}
             className="admin-btn admin-btn-pri sm font-bold cursor-pointer"

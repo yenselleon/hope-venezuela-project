@@ -4,7 +4,6 @@
 // Utiliza TanStack Query para la mutación del submit.
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useFormStore } from '@/stores/useFormStore';
 import { useI18nStore } from '@/stores/useI18nStore';

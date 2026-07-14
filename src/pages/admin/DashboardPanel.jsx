@@ -5,36 +5,15 @@
 // Animated count-up effect and chart bar growth on mount.
 // ──────────────────────────────────────────────────────────
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18nStore } from '@/stores/useI18nStore';
 import { volunteerService } from '@/services/volunteerService';
+import { inventarioService } from '@/services/inventarioService';
 import './Admin.css';
 
-// ── Demo data (matches the design reference) ─────────────────
-const DEMO_AREAS = [
-  { key: 'Salud', count: 96 },
-  { key: 'Logística', count: 68 },
-  { key: 'Transporte', count: 50 },
-  { key: 'Familias', count: 78 },
-  { key: 'Rescate', count: 37, isRed: true },
-];
-
-const DEMO_ZONES = [
-  { name: 'Vargas', pct: 82, count: 64 },
-  { name: 'Miranda S.A.', pct: 56, count: 41 },
-  { name: 'Los Teques', pct: 26, count: 18, isRed: true },
-  { name: 'Aragua', pct: 44, count: 29 },
-];
-
-const DEMO_SUPPLIES = [
-  { name: 'admin.supply.water', status: 'ok', label: 'OK · 620 u' },
-  { name: 'admin.supply.food', status: 'warn', label: 'Stock bajo · 90 u' },
-  { name: 'admin.supply.medicine', status: 'crit', label: 'Vence pronto · 40 u' },
-  { name: 'admin.supply.hygiene', status: 'ok', label: 'OK · 310 u' },
-  { name: 'admin.supply.mattresses', status: 'warn', label: 'Stock bajo · 48 u' },
-];
+// ── Real data dashboard integration ─────────────────────────
 
 // ── Animated Counter Hook ────────────────────────────────────
 function useCountUp(target, duration = 1100) {
@@ -132,7 +111,7 @@ function BarChart({ areas, total, t }) {
 }
 
 // ── Donut Chart ──────────────────────────────────────────────
-function DonutChart({ total, t }) {
+function DonutChart({ total, activePct, pendingPct, approvedPct, t }) {
   return (
     <div className="admin-dash-card" style={{ gap: 14 }}>
       <b className="admin-dash-card-title">{t('admin.dash.byStatus')}</b>
@@ -147,17 +126,17 @@ function DonutChart({ total, t }) {
           <div className="admin-legend-item">
             <i className="admin-legend-dot" style={{ background: '#2f7d4f' }} />
             <span className="admin-legend-label">{t('admin.status.activos')}</span>
-            <b className="admin-legend-pct">62%</b>
+            <b className="admin-legend-pct">{activePct}%</b>
           </div>
           <div className="admin-legend-item">
             <i className="admin-legend-dot" style={{ background: '#e6a93a' }} />
             <span className="admin-legend-label">{t('admin.status.pendientes')}</span>
-            <b className="admin-legend-pct">16%</b>
+            <b className="admin-legend-pct">{pendingPct}%</b>
           </div>
           <div className="admin-legend-item">
             <i className="admin-legend-dot" style={{ background: '#8fa3b8' }} />
             <span className="admin-legend-label">{t('admin.dash.aprobados')}</span>
-            <b className="admin-legend-pct">22%</b>
+            <b className="admin-legend-pct">{approvedPct}%</b>
           </div>
         </div>
       </div>
@@ -221,32 +200,141 @@ export default function DashboardPanel() {
   const t = useI18nStore((s) => s.t);
   const navigate = useNavigate();
 
-  // Real data query (for counts)
-  const { data: volData } = useQuery({
-    queryKey: ['volunteers', 'all-count'],
-    queryFn: () => volunteerService.getAll({ pageSize: 1 }),
-    select: (res) => res.total,
-    staleTime: 60_000,
+  // Fetch all volunteers to calculate statistics (pageSize: 1000 retrieves all)
+  const { data: allVolsResult } = useQuery({
+    queryKey: ['volunteers', 'all-for-dashboard'],
+    queryFn: () => volunteerService.getAll({ pageSize: 1000 }),
+    staleTime: 20_000,
   });
 
-  const { data: pendingCount } = useQuery({
-    queryKey: ['volunteers', 'pending-count'],
-    queryFn: () => volunteerService.getAll({ estado_voluntario: 'pendiente', pageSize: 1 }),
-    select: (res) => res.total,
+  const allVols = allVolsResult?.data ?? [];
+
+  // Fetch real inventory items
+  const { data: inventoryItems = [] } = useQuery({
+    queryKey: ['inventario', 'all-for-dashboard'],
+    queryFn: () => inventarioService.getAll(),
     staleTime: 30_000,
   });
 
-  const { data: activeCount } = useQuery({
-    queryKey: ['volunteers', 'active-count'],
-    queryFn: () => volunteerService.getAll({ estado_voluntario: 'activo', pageSize: 1 }),
-    select: (res) => res.total,
-    staleTime: 60_000,
+  // Calculate volunteer stats
+  const totalVol = allVols.length;
+  const pending = allVols.filter(v => v.estado_voluntario === 'pendiente').length;
+  const active = allVols.filter(v => v.estado_voluntario === 'activo').length;
+  const approvedCount = allVols.filter(v => v.estado_voluntario === 'aprobado').length;
+
+  const activePct = totalVol > 0 ? Math.round((active / totalVol) * 100) : 0;
+  const pendingPct = totalVol > 0 ? Math.round((pending / totalVol) * 100) : 0;
+  const approvedPct = totalVol > 0 ? Math.round((approvedCount / totalVol) * 100) : 0;
+
+  // Group by area
+  const areaCounts = {
+    'Salud': 0,
+    'Logística': 0,
+    'Transporte': 0,
+    'Familias': 0,
+    'Rescate': 0,
+  };
+  allVols.forEach(v => {
+    v.areas?.forEach(a => {
+      if (a.toLowerCase().includes('salud')) areaCounts['Salud']++;
+      if (a.toLowerCase().includes('logíst')) areaCounts['Logística']++;
+      if (a.toLowerCase().includes('transp')) areaCounts['Transporte']++;
+      if (a.toLowerCase().includes('recrea') || a.toLowerCase().includes('familia')) areaCounts['Familias']++;
+      if (a.toLowerCase().includes('rescat') || a.toLowerCase().includes('rescate')) areaCounts['Rescate']++;
+    });
   });
 
-  // Use real data if available, fallback to demo
-  const totalVol = volData ?? 342;
-  const pending = pendingCount ?? 5;
-  const active = activeCount ?? 218;
+  const areasData = [
+    { key: 'Salud', count: areaCounts['Salud'] },
+    { key: 'Logística', count: areaCounts['Logística'] },
+    { key: 'Transporte', count: areaCounts['Transporte'] },
+    { key: 'Familias', count: areaCounts['Familias'] },
+    { key: 'Rescate', count: areaCounts['Rescate'] },
+  ];
+
+  // Group by zone
+  const zoneCounts = {
+    'Vargas · La Guaira': 0,
+    'Miranda · San Antonio': 0,
+    'Miranda · Los Teques': 0,
+    'Aragua · Maracay': 0,
+  };
+  allVols.forEach(v => {
+    if (v.zona_asignada && zoneCounts[v.zona_asignada] !== undefined) {
+      zoneCounts[v.zona_asignada]++;
+    }
+  });
+
+  const zonesData = [
+    { name: 'Vargas', count: zoneCounts['Vargas · La Guaira'], pct: Math.min(100, Math.round((zoneCounts['Vargas · La Guaira'] / 30) * 100)), isRed: zoneCounts['Vargas · La Guaira'] < 20 },
+    { name: 'Miranda S.A.', count: zoneCounts['Miranda · San Antonio'], pct: Math.min(100, Math.round((zoneCounts['Miranda · San Antonio'] / 30) * 100)), isRed: zoneCounts['Miranda · San Antonio'] < 20 },
+    { name: 'Los Teques', count: zoneCounts['Miranda · Los Teques'], pct: Math.min(100, Math.round((zoneCounts['Miranda · Los Teques'] / 30) * 100)), isRed: zoneCounts['Miranda · Los Teques'] < 20 },
+    { name: 'Aragua', count: zoneCounts['Aragua · Maracay'], pct: Math.min(100, Math.round((zoneCounts['Aragua · Maracay'] / 30) * 100)), isRed: zoneCounts['Aragua · Maracay'] < 20 },
+  ];
+
+  // Calculate inventory stats
+  const totalSupplies = inventoryItems.reduce((sum, item) => sum + (item.cantidad || 0), 0);
+  const lowStockCount = inventoryItems.filter(i => i.cantidad <= i.stock_minimo).length;
+  
+  const today = new Date();
+  const in30Days = new Date();
+  in30Days.setDate(today.getDate() + 30);
+  const expiringCount = inventoryItems.filter(i => {
+    if (!i.fecha_vencimiento) return false;
+    const expDate = new Date(i.fecha_vencimiento);
+    return expDate >= today && expDate <= in30Days;
+  }).length;
+
+  const criticalAlerts = lowStockCount + expiringCount;
+
+  // Group inventory items by category
+  const categoryMap = {
+    'agua': 'admin.supply.water',
+    'alimentos': 'admin.supply.food',
+    'medicinas': 'admin.supply.medicine',
+    'higiene': 'admin.supply.hygiene',
+    'colchones': 'admin.supply.mattresses',
+  };
+
+  const groupedSupplies = {
+    'agua': { qty: 0, items: [] },
+    'alimentos': { qty: 0, items: [] },
+    'medicinas': { qty: 0, items: [] },
+    'higiene': { qty: 0, items: [] },
+    'colchones': { qty: 0, items: [] },
+  };
+
+  inventoryItems.forEach(item => {
+    const cat = item.categoria;
+    if (groupedSupplies[cat]) {
+      groupedSupplies[cat].qty += item.cantidad || 0;
+      groupedSupplies[cat].items.push(item);
+    }
+  });
+
+  const suppliesData = Object.entries(groupedSupplies).map(([cat, info]) => {
+    const translationKey = categoryMap[cat] || `admin.supply.${cat}`;
+    let status = 'ok';
+    const hasLowStock = info.items.some(i => i.cantidad <= i.stock_minimo);
+    const hasExpiring = info.items.some(i => {
+      if (!i.fecha_vencimiento) return false;
+      const expDate = new Date(i.fecha_vencimiento);
+      return expDate >= today && expDate <= in30Days;
+    });
+
+    if (hasExpiring) status = 'crit';
+    else if (hasLowStock) status = 'warn';
+
+    let statusLabel = 'OK';
+    if (status === 'crit') statusLabel = 'Vence pronto';
+    else if (status === 'warn') statusLabel = 'Stock bajo';
+
+    return {
+      name: translationKey,
+      status,
+      label: `${statusLabel} · ${info.qty} u`
+    };
+  });
 
   return (
     <div className="admin-panel admin-fade">
@@ -261,16 +349,16 @@ export default function DashboardPanel() {
           arrowIcon
           onClick={() => navigate('/admin/aprobacion')}
         />
-        <KpiCard count={1860} label={t('admin.dash.kpi.supplies')} />
-        <KpiCard count={5} label={t('admin.dash.kpi.alerts')} variant="crit" />
+        <KpiCard count={totalSupplies} label={t('admin.dash.kpi.supplies')} />
+        <KpiCard count={criticalAlerts} label={t('admin.dash.kpi.alerts')} variant="crit" />
       </div>
 
       {/* ── Dashboard Grid ── */}
       <div className="admin-dash-grid">
-        <BarChart areas={DEMO_AREAS} total={totalVol} t={t} />
-        <DonutChart total={totalVol} t={t} />
-        <ZoneCoverage zones={DEMO_ZONES} t={t} />
-        <SupplyList supplies={DEMO_SUPPLIES} t={t} />
+        <BarChart areas={areasData} total={totalVol} t={t} />
+        <DonutChart total={totalVol} activePct={activePct} pendingPct={pendingPct} approvedPct={approvedPct} t={t} />
+        <ZoneCoverage zones={zonesData} t={t} />
+        <SupplyList supplies={suppliesData} t={t} />
       </div>
     </div>
   );
