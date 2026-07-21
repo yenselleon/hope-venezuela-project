@@ -14,6 +14,7 @@ import { Registro } from '@/pages/Registro';
 import { Donar } from '@/pages/Donar';
 import { Toast } from '@/components/ui/Toast';
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute';
+import { SuperAdminRoute } from '@/components/admin/SuperAdminRoute';
 import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load admin views — no las carga hasta que se navega a /admin
@@ -25,6 +26,10 @@ const AprobacionPanel = lazy(() => import('@/pages/admin/AprobacionPanel'));
 const MapeoPanel = lazy(() => import('@/pages/admin/MapeoPanel'));
 const InventarioPanel = lazy(() => import('@/pages/admin/InventarioPanel'));
 const AnaliticaPanel = lazy(() => import('@/pages/admin/AnaliticaPanel'));
+// Fase 4 — Gobernanza
+const PersonalPanel = lazy(() => import('@/pages/admin/PersonalPanel'));
+const PermisosPanel = lazy(() => import('@/pages/admin/PermisosPanel'));
+const PerfilPanel = lazy(() => import('@/pages/admin/PerfilPanel'));
 
 // Inicializar el cliente de TanStack Query
 const queryClient = new QueryClient({
@@ -98,6 +103,24 @@ function AppRoutes() {
         <Route path="mapeo" element={<Suspense fallback={<AdminLoader />}><MapeoPanel /></Suspense>} />
         <Route path="inventario" element={<Suspense fallback={<AdminLoader />}><InventarioPanel /></Suspense>} />
         <Route path="analitica" element={<Suspense fallback={<AdminLoader />}><AnaliticaPanel /></Suspense>} />
+        {/* Fase 4 — Gobernanza */}
+        <Route
+          path="personal"
+          element={
+            <SuperAdminRoute>
+              <Suspense fallback={<AdminLoader />}><PersonalPanel /></Suspense>
+            </SuperAdminRoute>
+          }
+        />
+        <Route
+          path="permisos"
+          element={
+            <SuperAdminRoute>
+              <Suspense fallback={<AdminLoader />}><PermisosPanel /></Suspense>
+            </SuperAdminRoute>
+          }
+        />
+        <Route path="perfil" element={<Suspense fallback={<AdminLoader />}><PerfilPanel /></Suspense>} />
       </Route>
 
       {/* Fallback */}

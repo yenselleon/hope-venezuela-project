@@ -68,4 +68,29 @@ export const authService = {
     );
     return () => subscription.unsubscribe();
   },
+
+  /**
+   * Actualiza el nombre del perfil del usuario autenticado.
+   * Modifica user_metadata.nombre en Supabase Auth.
+   */
+  updateProfile: async ({ nombre }) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: { nombre },
+    });
+    if (error) throw new Error(error.message);
+    return data.user;
+  },
+
+  /**
+   * Cambia la contraseña del usuario autenticado.
+   * Supabase requiere que el usuario esté en una sesión activa con recovery token
+   * o que use updateUser directamente (para usuarios ya logueados).
+   */
+  changePassword: async (newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw new Error(error.message);
+    return data.user;
+  },
 };
