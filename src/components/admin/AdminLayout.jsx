@@ -34,6 +34,9 @@ function usePanelTitle(pathname) {
   if (pathname.includes('/mapeo')) return t('admin.nav.mapeo.title');
   if (pathname.includes('/inventario')) return t('admin.nav.inventario.title');
   if (pathname.includes('/analitica')) return t('admin.nav.analitica.title');
+  if (pathname.includes('/personal')) return t('admin.topbar.personal');
+  if (pathname.includes('/permisos')) return t('admin.topbar.permisos');
+  if (pathname.includes('/perfil')) return t('admin.topbar.perfil');
   return 'Dashboard';
 }
 
@@ -95,6 +98,31 @@ function IconPersonal() {
   );
 }
 
+function IconLock() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+function IconPermisos() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function IconPerfil() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 function IconLogout() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -137,6 +165,10 @@ export default function AdminLayout() {
 
   const searchQuery = useUIStore((s) => s.searchQuery);
   const setSearchQuery = useUIStore((s) => s.setSearchQuery);
+  const selectedZoneFilter = useUIStore((s) => s.selectedZoneFilter);
+  const setSelectedZoneFilter = useUIStore((s) => s.setSelectedZoneFilter);
+  const selectedDateRangeFilter = useUIStore((s) => s.selectedDateRangeFilter);
+  const setSelectedDateRangeFilter = useUIStore((s) => s.setSelectedDateRangeFilter);
 
   // Fetch pending count for sidebar badge
   const { data: pendingData } = useQuery({
@@ -198,6 +230,9 @@ export default function AdminLayout() {
     if (location.pathname.includes('/mapeo')) return 'mapeo';
     if (location.pathname.includes('/inventario')) return 'inventario';
     if (location.pathname.includes('/analitica')) return 'analitica';
+    if (location.pathname.includes('/personal')) return 'personal';
+    if (location.pathname.includes('/permisos')) return 'permisos';
+    if (location.pathname.includes('/perfil')) return 'perfil';
     return 'dashboard';
   }, [location.pathname]);
 
@@ -209,7 +244,10 @@ export default function AdminLayout() {
         aprobacion: '/admin/aprobacion',
         mapeo: '/admin/mapeo',
         inventario: '/admin/inventario',
-        analitica: '/admin/analitica'
+        analitica: '/admin/analitica',
+        personal: '/admin/personal',
+        permisos: '/admin/permisos',
+        perfil: '/admin/perfil',
       };
       navigate(routes[view] || '/admin');
     },
@@ -293,15 +331,41 @@ export default function AdminLayout() {
           {t('admin.nav.analitica')}
         </button>
 
-        <div className="admin-nav dis">
-          <IconPersonal />
-          {t('admin.nav.personal')}
-          <span className="admin-nav-phase">Fase 4</span>
-        </div>
+        {/* ── Sección Super-Admin (solo visible para super_admin) ── */}
+        {role === 'super_admin' && (
+          <>
+            <div className="admin-sa-divider" />
+            <div className="admin-sa-header">
+              <IconLock />
+              {t('admin.nav.sa.section')}
+            </div>
+            <button
+              className={`admin-nav${currentView === 'personal' ? ' on' : ''}`}
+              onClick={() => handleNav('personal')}
+            >
+              <IconPersonal />
+              {t('admin.nav.personal')}
+            </button>
+            <button
+              className={`admin-nav${currentView === 'permisos' ? ' on' : ''}`}
+              onClick={() => handleNav('permisos')}
+            >
+              <IconPermisos />
+              {t('admin.nav.permisos')}
+            </button>
+          </>
+        )}
 
         {/* Footer */}
         <div className="admin-sidebar-footer">
-          <div className="admin-sidebar-user">
+          <div
+            className="admin-sidebar-user"
+            style={{ cursor: 'pointer' }}
+            onClick={() => handleNav('perfil')}
+            role="button"
+            tabIndex={0}
+            title={t('admin.topbar.perfil')}
+          >
             <div className="admin-avatar" style={{ width: 32, height: 32, fontSize: 12 }}>
               {initials}
             </div>
@@ -337,12 +401,32 @@ export default function AdminLayout() {
           </div>
 
           <div className="admin-top-extra">
-            <div className="admin-btn admin-btn-ghost sm">
-              {t('admin.filter.zona')} ▾
-            </div>
-            <div className="admin-btn admin-btn-ghost sm">
-              {t('admin.topbar.last7days')} ▾
-            </div>
+            <select
+              className="admin-btn admin-btn-ghost sm"
+              style={{ cursor: 'pointer' }}
+              value={selectedZoneFilter}
+              onChange={(e) => setSelectedZoneFilter(e.target.value)}
+              id="topbar-zone-filter"
+            >
+              <option value="Todas">{t('admin.filter.zona.all')}</option>
+              <option value="Vargas · La Guaira">{t('admin.filter.zona.vargas')}</option>
+              <option value="Miranda · San Antonio">{t('admin.filter.zona.sanantonio')}</option>
+              <option value="Miranda · Los Teques">{t('admin.filter.zona.losteques')}</option>
+              <option value="Aragua · Maracay">{t('admin.filter.zona.aragua')}</option>
+            </select>
+
+            <select
+              className="admin-btn admin-btn-ghost sm"
+              style={{ cursor: 'pointer' }}
+              value={selectedDateRangeFilter}
+              onChange={(e) => setSelectedDateRangeFilter(e.target.value)}
+              id="topbar-daterange-filter"
+            >
+              <option value="7d">{t('admin.filter.daterange.7d')}</option>
+              <option value="15d">{t('admin.filter.daterange.15d')}</option>
+              <option value="30d">{t('admin.filter.daterange.30d')}</option>
+              <option value="all">{t('admin.filter.daterange.all')}</option>
+            </select>
 
             {/* Language toggle */}
             <div className="admin-lngtog" onClick={toggleLang} role="button" tabIndex={0}>
@@ -471,11 +555,49 @@ export default function AdminLayout() {
                   </svg>
                   <span>{t('admin.nav.analitica')}</span>
                 </div>
-                <div className="admin-mobile-menu-nav-item dis">
-                  <IconPersonal />
-                  <span>{t('admin.nav.personal')}</span>
-                  <span className="admin-nav-phase">Fase 4</span>
+                {/* Perfil — accesible para todos */}
+                <div
+                  className="admin-mobile-menu-nav-item"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleNav('perfil');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <IconPerfil />
+                  <span>{t('admin.nav.perfil')}</span>
                 </div>
+
+                {/* Super-Admin items — solo para super_admin */}
+                {role === 'super_admin' && (
+                  <>
+                    <div
+                      className="admin-mobile-menu-nav-item"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleNav('personal');
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <IconPersonal />
+                      <span>{t('admin.nav.personal')}</span>
+                    </div>
+                    <div
+                      className="admin-mobile-menu-nav-item"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleNav('permisos');
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <IconPermisos />
+                      <span>{t('admin.nav.permisos')}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Language Switcher */}

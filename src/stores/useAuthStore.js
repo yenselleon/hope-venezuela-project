@@ -5,11 +5,19 @@
 
 import { create } from 'zustand';
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
   role: null,
   isAuthenticated: false,
   isLoading: true, // true hasta que se verifique la sesión inicial
+
+  /**
+   * Getter derivado: true si el usuario tiene rol super_admin.
+   * Se deriva síncronamente desde `role` — no usa useEffect.
+   */
+  get isSuperAdmin() {
+    return get().role === 'super_admin';
+  },
 
   /**
    * Sincroniza el store con una sesión de Supabase.

@@ -14,6 +14,8 @@ import { Registro } from '@/pages/Registro';
 import { Donar } from '@/pages/Donar';
 import { Toast } from '@/components/ui/Toast';
 import { ProtectedRoute } from '@/components/admin/ProtectedRoute';
+import { SuperAdminRoute } from '@/components/admin/SuperAdminRoute';
+import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
 
 // Lazy load admin views — no las carga hasta que se navega a /admin
@@ -25,6 +27,10 @@ const AprobacionPanel = lazy(() => import('@/pages/admin/AprobacionPanel'));
 const MapeoPanel = lazy(() => import('@/pages/admin/MapeoPanel'));
 const InventarioPanel = lazy(() => import('@/pages/admin/InventarioPanel'));
 const AnaliticaPanel = lazy(() => import('@/pages/admin/AnaliticaPanel'));
+// Fase 4 — Gobernanza
+const PersonalPanel = lazy(() => import('@/pages/admin/PersonalPanel'));
+const PermisosPanel = lazy(() => import('@/pages/admin/PermisosPanel'));
+const PerfilPanel = lazy(() => import('@/pages/admin/PerfilPanel'));
 
 // Inicializar el cliente de TanStack Query
 const queryClient = new QueryClient({
@@ -75,9 +81,11 @@ function AppRoutes() {
       <Route
         path="/admin/login"
         element={
-          <Suspense fallback={<AdminLoader />}>
-            <Login />
-          </Suspense>
+          <AdminErrorBoundary>
+            <Suspense fallback={<AdminLoader />}>
+              <Login />
+            </Suspense>
+          </AdminErrorBoundary>
         }
       />
 
@@ -86,18 +94,42 @@ function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<AdminLoader />}>
-              <AdminLayout />
-            </Suspense>
+            <AdminErrorBoundary>
+              <Suspense fallback={<AdminLoader />}>
+                <AdminLayout />
+              </Suspense>
+            </AdminErrorBoundary>
           </ProtectedRoute>
         }
       >
-        <Route index element={<Suspense fallback={<AdminLoader />}><DashboardPanel /></Suspense>} />
-        <Route path="voluntarios" element={<Suspense fallback={<AdminLoader />}><VoluntariosPanel /></Suspense>} />
-        <Route path="aprobacion" element={<Suspense fallback={<AdminLoader />}><AprobacionPanel /></Suspense>} />
-        <Route path="mapeo" element={<Suspense fallback={<AdminLoader />}><MapeoPanel /></Suspense>} />
-        <Route path="inventario" element={<Suspense fallback={<AdminLoader />}><InventarioPanel /></Suspense>} />
-        <Route path="analitica" element={<Suspense fallback={<AdminLoader />}><AnaliticaPanel /></Suspense>} />
+        <Route index element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><DashboardPanel /></Suspense></AdminErrorBoundary>} />
+        <Route path="voluntarios" element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><VoluntariosPanel /></Suspense></AdminErrorBoundary>} />
+        <Route path="aprobacion" element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><AprobacionPanel /></Suspense></AdminErrorBoundary>} />
+        <Route path="mapeo" element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><MapeoPanel /></Suspense></AdminErrorBoundary>} />
+        <Route path="inventario" element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><InventarioPanel /></Suspense></AdminErrorBoundary>} />
+        <Route path="analitica" element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><AnaliticaPanel /></Suspense></AdminErrorBoundary>} />
+        {/* Fase 4 — Gobernanza */}
+        <Route
+          path="personal"
+          element={
+            <SuperAdminRoute>
+              <AdminErrorBoundary>
+                <Suspense fallback={<AdminLoader />}><PersonalPanel /></Suspense>
+              </AdminErrorBoundary>
+            </SuperAdminRoute>
+          }
+        />
+        <Route
+          path="permisos"
+          element={
+            <SuperAdminRoute>
+              <AdminErrorBoundary>
+                <Suspense fallback={<AdminLoader />}><PermisosPanel /></Suspense>
+              </AdminErrorBoundary>
+            </SuperAdminRoute>
+          }
+        />
+        <Route path="perfil" element={<AdminErrorBoundary><Suspense fallback={<AdminLoader />}><PerfilPanel /></Suspense></AdminErrorBoundary>} />
       </Route>
 
       {/* Fallback */}

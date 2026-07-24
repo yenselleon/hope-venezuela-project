@@ -10,12 +10,12 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { inventarioService } from '@/services/inventarioService';
 import './Admin.css';
 
-const CATEGORIAS = [
-  { value: 'agua', labelKey: 'admin.supply.water', color: '#003366' },
-  { value: 'higiene', labelKey: 'admin.supply.hygiene', color: '#2f7d4f' },
-  { value: 'alimentos', labelKey: 'admin.supply.food', color: '#e6a93a' },
-  { value: 'refugio', labelKey: 'admin.supply.mattresses', color: '#7a86c8' }, // Map to shelters
-  { value: 'medicinas', labelKey: 'admin.supply.medicine', color: '#b06fb0' },
+const DEFAULT_CATEGORIAS = [
+  { value: 'agua', labelKey: 'admin.supply.water', label: 'Agua potable', color: '#003366' },
+  { value: 'higiene', labelKey: 'admin.supply.hygiene', label: 'Higiene', color: '#2f7d4f' },
+  { value: 'alimentos', labelKey: 'admin.supply.food', label: 'Alimentos', color: '#e6a93a' },
+  { value: 'refugio', labelKey: 'admin.supply.mattresses', label: 'Colchones / Refugio', color: '#7a86c8' },
+  { value: 'medicinas', labelKey: 'admin.supply.medicine', label: 'Medicinas', color: '#b06fb0' },
 ];
 
 export default function InventarioPanel() {
@@ -25,6 +25,11 @@ export default function InventarioPanel() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
+  // Categorías dinámicas
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIAS);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+
   // Búsqueda global reactiva desde el topbar
   const searchQuery = useUIStore((s) => s.searchQuery);
 
@@ -33,7 +38,6 @@ export default function InventarioPanel() {
 
   // Cajón Lateral / Modal Overlay
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [formMode, setFormMode] = useState('item'); // 'item' | 'movement'
 
   // Inline Editing Quantity state
   const [editingItemId, setEditingItemId] = useState(null);
@@ -48,6 +52,7 @@ export default function InventarioPanel() {
     stock_minimo: 10,
     lote: '',
     fecha_vencimiento: '',
+    centro: 'Vargas · Casa Misionera',
   });
 
   // 1. Obtener catálogo
@@ -92,6 +97,7 @@ export default function InventarioPanel() {
       stock_minimo: 10,
       lote: '',
       fecha_vencimiento: '',
+      centro: 'Vargas · Casa Misionera',
     });
   };
 
@@ -103,6 +109,24 @@ export default function InventarioPanel() {
       ...newItem,
       lote: newItem.lote.trim() || undefined,
     });
+  };
+
+  const handleCreateCategorySubmit = (e) => {
+    e.preventDefault();
+    const name = newCatName.trim();
+    if (!name) return;
+    const val = name.toLowerCase().replace(/\s+/g, '_');
+    const newCat = {
+      value: val,
+      labelKey: null,
+      label: name,
+      color: '#003366',
+    };
+    setCategories((prev) => [...prev, newCat]);
+    setCategoryFilter(val);
+    showToast(lang === 'es' ? `Categoría "${name}" creada` : `Category "${name}" created`);
+    setNewCatName('');
+    setIsCategoryModalOpen(false);
   };
 
   // Inline adjustment click-save logic
@@ -159,18 +183,13 @@ export default function InventarioPanel() {
         </span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <button
-            onClick={() => {
-              showToast(lang === 'es' ? 'Categorías administradas' : 'Categories managed');
-            }}
+            onClick={() => setIsCategoryModalOpen(true)}
             className="admin-btn admin-btn-ghost sm font-bold cursor-pointer"
           >
             {lang === 'es' ? 'Categorías' : 'Categories'}
           </button>
           <button
-            onClick={() => {
-              setFormMode('item');
-              setIsDrawerOpen(true);
-            }}
+            onClick={() => setIsDrawerOpen(true)}
             className="admin-btn admin-btn-pri sm font-bold cursor-pointer"
           >
             + {lang === 'es' ? 'Añadir insumo' : 'Add supply'}
@@ -221,7 +240,7 @@ export default function InventarioPanel() {
         {/* KPI 4 */}
         <div className="admin-kpi">
           <span className="admin-kpi-number">
-            {CATEGORIAS.length}
+            {categories.length}
           </span>
           <span className="admin-kpi-label">
             {lang === 'es' ? 'Categorías' : 'Categories'}
@@ -237,21 +256,20 @@ export default function InventarioPanel() {
         >
           Todas
         </button>
-        {CATEGORIAS.map((cat) => (
+        {categories.map((cat) => (
           <button
             key={cat.value}
             onClick={() => setCategoryFilter(cat.value)}
             className={`admin-chip cursor-pointer${categoryFilter === cat.value ? ' on' : ''}`}
           >
-            {t(cat.labelKey)}
+            {cat.labelKey ? t(cat.labelKey) : cat.label}
           </button>
         ))}
         <button
           className="admin-chip cursor-pointer"
           style={{ borderStyle: 'dashed', color: '#2a6fdb' }}
-          onClick={() => {
-            showToast(lang === 'es' ? 'Crear categoría' : 'Create category');
-          }}
+          onClick={() => setIsCategoryModalOpen(true)}
+          id="btn-new-category"
         >
           + {lang === 'es' ? 'Nueva categoría' : 'New category'}
         </button>
@@ -319,7 +337,11 @@ export default function InventarioPanel() {
                 </div>
                 
                 <div className="admin-td col-hide" style={{ color: '#4b5563' }}>
-                  {t(CATEGORIAS.find(c => c.value === item.categoria)?.labelKey || 'admin.nav.inventario')}
+                  {(() => {
+                    const found = categories.find((c) => c.value === item.categoria);
+                    if (!found) return item.categoria;
+                    return found.labelKey ? t(found.labelKey) : found.label;
+                  })()}
                 </div>
 
                 <div className="admin-td">
@@ -411,9 +433,9 @@ export default function InventarioPanel() {
                       value={newItem.categoria}
                       onChange={(e) => setNewItem({ ...newItem, categoria: e.target.value })}
                     >
-                      {CATEGORIAS.map((cat) => (
+                      {categories.map((cat) => (
                         <option key={cat.value} value={cat.value}>
-                          {t(cat.labelKey)}
+                          {cat.labelKey ? t(cat.labelKey) : cat.label}
                         </option>
                       ))}
                     </select>
@@ -474,12 +496,19 @@ export default function InventarioPanel() {
 
                 <div>
                   <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
-                    Centro de acopio
+                    {lang === 'es' ? 'Centro de acopio' : 'Storage center'}
                   </label>
                   <select
                     className="fld bg-[#faf9f6] cursor-pointer"
+                    value={newItem.centro}
+                    onChange={(e) => setNewItem({ ...newItem, centro: e.target.value })}
+                    id="select-add-item-center"
                   >
-                    <option>Vargas · Casa Misionera</option>
+                    <option value="Vargas · Casa Misionera">Vargas · Casa Misionera</option>
+                    <option value="Caracas · Centro Principal">Caracas · Centro Principal</option>
+                    <option value="Miranda · San Antonio">Miranda · San Antonio</option>
+                    <option value="Miranda · Los Teques">Miranda · Los Teques</option>
+                    <option value="Aragua · Maracay">Aragua · Maracay</option>
                   </select>
                 </div>
 
@@ -497,6 +526,58 @@ export default function InventarioPanel() {
                     className="admin-btn admin-btn-pri sm font-bold cursor-pointer"
                   >
                     {createItemMutation.isPending ? t('admin.supply.saving') : t('admin.assign.save')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CREATE CATEGORY MODAL OVERLAY ── */}
+      {isCategoryModalOpen && (
+        <div className="admin-mobile-menu-overlay" onClick={() => setIsCategoryModalOpen(false)} style={{ zIndex: 60 }}>
+          <div
+            className="admin-mobile-menu-sheet max-w-[380px] mx-auto rounded-t-2xl lg:rounded-2xl lg:mb-auto lg:mt-32 lg:border lg:border-[#efe7d8] lg:shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-mobile-menu-header">
+              <b>{lang === 'es' ? 'Nueva categoría de insumo' : 'New supply category'}</b>
+              <button className="admin-mobile-menu-close" onClick={() => setIsCategoryModalOpen(false)}>✕</button>
+            </div>
+
+            <div className="admin-mobile-menu-body p-5">
+              <form onSubmit={handleCreateCategorySubmit} className="flex flex-col gap-4">
+                <div>
+                  <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
+                    {lang === 'es' ? 'Nombre de la categoría' : 'Category name'} <span className="req">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={lang === 'es' ? 'Ej. Herramientas, Equipos…' : 'e.g. Tools, Equipment…'}
+                    className="fld bg-[#faf9f6]"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    autoFocus
+                    id="new-category-name-input"
+                  />
+                </div>
+
+                <div className="flex gap-3 justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryModalOpen(false)}
+                    className="admin-btn admin-btn-soft sm font-bold cursor-pointer"
+                  >
+                    {t('admin.assign.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="admin-btn admin-btn-pri sm font-bold cursor-pointer"
+                    id="btn-save-category"
+                  >
+                    {lang === 'es' ? 'Guardar categoría' : 'Save category'}
                   </button>
                 </div>
               </form>

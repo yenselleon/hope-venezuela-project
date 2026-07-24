@@ -16,17 +16,7 @@ import { ExportModal } from '@/components/admin/ExportModal';
 import { AssignModal } from '@/components/admin/AssignModal';
 import './Admin.css';
 
-// ── Demo data for fallback ───────────────────────────────────
-const DEMO_VOLUNTEERS = [
-  { id: 1, nombre: 'María González', cedula: '12345678', telefono: '0412-5550101', edad: 34, genero: 'Femenino', areas: ['Salud'], certificaciones: ['Primeros auxilios'], vehiculo: '', zonas: ['Vargas'], zona_asignada: 'Vargas · La Guaira', estado_voluntario: 'pendiente', turnos: ['Lun–Vie · mañana'], created_at: '2025-07-01T10:00:00Z' },
-  { id: 2, nombre: 'José Pérez', cedula: '14521122', telefono: '0414-5550110', edad: 41, genero: 'Masculino', areas: ['Transporte'], certificaciones: [], vehiculo: 'PickUp', zonas: ['Miranda'], zona_asignada: 'Miranda · San Antonio', estado_voluntario: 'activo', turnos: ['Fines de semana'], created_at: '2025-07-01T11:00:00Z' },
-  { id: 3, nombre: 'Ana Rodríguez', cedula: '29019033', telefono: '0424-5550133', edad: 16, genero: 'Femenino', areas: ['Familias'], certificaciones: [], vehiculo: '', zonas: ['Aragua'], zona_asignada: '', estado_voluntario: 'pendiente', turnos: ['Tardes'], created_at: '2025-07-01T12:00:00Z' },
-  { id: 4, nombre: 'Luis Martínez', cedula: '18774571', telefono: '0412-5550144', edad: 29, genero: 'Masculino', areas: ['Logística'], certificaciones: [], vehiculo: 'Carro', zonas: ['Los Teques'], zona_asignada: 'Miranda · Los Teques', estado_voluntario: 'activo', turnos: ['Lun–Sáb · tarde'], created_at: '2025-07-01T13:00:00Z' },
-  { id: 5, nombre: 'Carla Torres', cedula: '20112290', telefono: '0416-5550155', edad: 38, genero: 'Femenino', areas: ['Salud'], certificaciones: ['Primeros auxilios'], vehiculo: '', zonas: ['Vargas'], zona_asignada: 'Vargas · La Guaira', estado_voluntario: 'aprobado', turnos: ['Noche'], created_at: '2025-07-01T14:00:00Z' },
-  { id: 6, nombre: 'Pedro Silva', cedula: '10993410', telefono: '0412-5550166', edad: 44, genero: 'Masculino', areas: ['Soporte a rescatistas'], certificaciones: ['Rescate urbano'], vehiculo: 'PickUp', zonas: ['Vargas'], zona_asignada: '', estado_voluntario: 'pendiente', turnos: ['24h · guardias'], created_at: '2025-07-01T15:00:00Z' },
-  { id: 7, nombre: 'Marta León', cedula: '22781540', telefono: '0414-5550177', edad: 31, genero: 'Femenino', areas: ['Logística'], certificaciones: [], vehiculo: '', zonas: ['Miranda'], zona_asignada: '', estado_voluntario: 'pendiente', turnos: ['Lun–Vie · mañana'], created_at: '2025-07-01T16:00:00Z' },
-  { id: 8, nombre: 'Jorge Díaz', cedula: '16340982', telefono: '0424-5550188', edad: 37, genero: 'Masculino', areas: ['Transporte'], certificaciones: [], vehiculo: 'Camión', zonas: ['Vargas'], zona_asignada: '', estado_voluntario: 'pendiente', turnos: ['Fines de semana'], created_at: '2025-07-01T17:00:00Z' },
-];
+const EMPTY_ARRAY = [];
 
 // ── Helper: initials from name ───────────────────────────────
 function getInitials(name) {
@@ -248,9 +238,9 @@ export default function VoluntariosPanel() {
     placeholderData: (prev) => prev,
   });
 
-  // Use real data or demo fallback
-  const volunteers = volResult?.data ?? DEMO_VOLUNTEERS;
-  const totalCount = volResult?.total ?? DEMO_VOLUNTEERS.length;
+  // Use real data
+  const volunteers = volResult?.data ?? EMPTY_ARRAY;
+  const totalCount = volResult?.total ?? 0;
   const totalPages = volResult?.totalPages ?? 1;
 
   // Client-side cert filter (Supabase may not support this directly)

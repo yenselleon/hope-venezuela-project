@@ -56,6 +56,7 @@ export const inventarioService = {
         stock_minimo: parseInt(item.stock_minimo, 10) || 10,
         lote: item.lote || 'L-1001',
         fecha_vencimiento: item.fecha_vencimiento || null,
+        centro: item.centro || 'Vargas · Casa Misionera',
       })
       .select()
       .single();

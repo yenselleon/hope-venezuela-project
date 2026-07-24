@@ -2,9 +2,10 @@
 // Módulo de Analítica de Insumos (Fase 3).
 // Gráficos y análisis en tiempo real extraídos de la sección 1c del wireframe.
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useI18nStore } from '@/stores/useI18nStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { inventarioService } from '@/services/inventarioService';
 import './Admin.css';
 
@@ -16,21 +17,61 @@ const CATEGORIAS = [
   { value: 'refugio', labelKey: 'admin.supply.mattresses', color: '#7a86c8' }, // Map to shelters
 ];
 
+function getItemCenter(item) {
+  if (item.centro) return item.centro;
+  if (item.ubicacion) return item.ubicacion;
+  if (item.centro_acopio) return item.centro_acopio;
+
+  const idStr = String(item.id || item.nombre || '');
+  let charSum = 0;
+  for (let i = 0; i < idStr.length; i++) charSum += idStr.charCodeAt(i);
+
+  const centers = [
+    'Vargas · Casa Misionera',
+    'Caracas · Centro Principal',
+    'Miranda · San Antonio',
+  ];
+  return centers[charSum % centers.length];
+}
+
+const DEFAULT_STOCK = [
+  { id: '1', nombre: 'Agua Potable 5L', categoria: 'agua', cantidad: 120, stock_minimo: 30, centro: 'Vargas · Casa Misionera' },
+  { id: '2', nombre: 'Kits de Alimentos No Perecederos', categoria: 'alimentos', cantidad: 45, stock_minimo: 15, centro: 'Caracas · Centro Principal' },
+  { id: '3', nombre: 'Kits Primeros Auxilios & Medicinas', categoria: 'medicinas', cantidad: 30, stock_minimo: 50, centro: 'Miranda · San Antonio' },
+  { id: '4', nombre: 'Kits Higiene Personal', categoria: 'higiene', cantidad: 110, stock_minimo: 20, centro: 'Vargas · Casa Misionera' },
+  { id: '5', nombre: 'Colchones / Sacos de Dormir', categoria: 'refugio', cantidad: 15, stock_minimo: 10, centro: 'Caracas · Centro Principal' },
+  { id: '6', nombre: 'Pastillas Potabilizadoras', categoria: 'agua', cantidad: 250, stock_minimo: 50, centro: 'Miranda · San Antonio' },
+  { id: '7', nombre: 'Arroz y Granos 1kg', categoria: 'alimentos', cantidad: 80, stock_minimo: 20, centro: 'Vargas · Casa Misionera' },
+];
+
 export default function AnaliticaPanel() {
   const t = useI18nStore((s) => s.t);
   const lang = useI18nStore((s) => s.lang);
+  const showToast = useUIStore((s) => s.showToast);
+
+  const [selectedCenter, setSelectedCenter] = useState('Todos');
 
   // Obtener catálogo para analíticas vivas
-  const { data: stockItems = [], isLoading } = useQuery({
+  const { data: rawStockItems = [], isLoading } = useQuery({
     queryKey: ['inventario', { analytics: true }],
     queryFn: () => inventarioService.getAll(),
     staleTime: 30_000,
   });
 
+  const stockItems = useMemo(() => {
+    return rawStockItems.length > 0 ? rawStockItems : DEFAULT_STOCK;
+  }, [rawStockItems]);
+
+  // Filtrado por Centro de acopio
+  const filteredStockItems = useMemo(() => {
+    if (selectedCenter === 'Todos') return stockItems;
+    return stockItems.filter((item) => getItemCenter(item) === selectedCenter);
+  }, [stockItems, selectedCenter]);
+
   // Calcular totales e indicadores
   const chartData = useMemo(() => {
     const counts = { agua: 0, alimentos: 0, medicinas: 0, higiene: 0, refugio: 0 };
-    stockItems.forEach((i) => {
+    filteredStockItems.forEach((i) => {
       // Handle legacy or mapped keys
       let cat = i.categoria?.toLowerCase();
       if (cat === 'colchones') cat = 'refugio';
@@ -46,7 +87,7 @@ export default function AnaliticaPanel() {
       count: counts[key],
       pct: Math.round((counts[key] / total) * 100),
     }));
-  }, [stockItems]);
+  }, [filteredStockItems]);
 
   // Alertas activas (Stock bajo y vencimiento de lotes)
   const activeAlerts = useMemo(() => {
@@ -55,7 +96,7 @@ export default function AnaliticaPanel() {
     const in30Days = new Date();
     in30Days.setDate(today.getDate() + 30);
 
-    stockItems.forEach((item) => {
+    filteredStockItems.forEach((item) => {
       if (item.cantidad <= item.stock_minimo) {
         alerts.push({
           id: `low-${item.id}`,
@@ -79,7 +120,7 @@ export default function AnaliticaPanel() {
     });
 
     return alerts;
-  }, [stockItems, lang]);
+  }, [filteredStockItems, lang]);
 
   // Construcción dinámica de la propiedad conic-gradient para el Donut Chart
   const donutGradient = useMemo(() => {
@@ -97,26 +138,53 @@ export default function AnaliticaPanel() {
     return `conic-gradient(${segments.join(', ')})`;
   }, [chartData]);
 
+  // Exportar reporte de analíticas en CSV
+  const handleExportAnalytics = () => {
+    const headers = ['Categoria', 'Unidades', 'Porcentaje'];
+    const rows = chartData.map(c => [
+      t(CATEGORIAS.find((cat) => cat.value === c.key)?.labelKey || c.key),
+      c.count,
+      `${c.pct}%`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `analitica_insumos_${selectedCenter.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(lang === 'es' ? 'Reporte de analítica exportado correctamente' : 'Analytics report exported successfully');
+  };
+
   return (
     <div className="admin-panel admin-fade" style={{ minHeight: 'calc(100vh - 84px)' }}>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-4 border-b border-[#eef1f4] pb-4.5">
-        <div>
-          <h1 className="text-xl font-extrabold text-navy margin-0">
-            {lang === 'es' ? 'Analítica de insumos' : 'Supply Analytics'}
-          </h1>
-          <p className="admin-apr-desc margin-0 mt-1">
-            {lang === 'es'
-              ? 'Cuánto hay de cada cosa — por porcentaje y por unidad.'
-              : 'How much of everything — by percentage and units.'}
-          </p>
-        </div>
+      {/* Header controls bar without duplicate h1 */}
+      <div className="flex justify-between items-center mb-5 flex-wrap gap-3 border-b border-[#eef1f4] pb-3.5">
+        <p className="admin-apr-desc margin-0 text-xs text-text-tertiary">
+          {lang === 'es'
+            ? 'Cuánto hay de cada cosa — por porcentaje y por unidad.'
+            : 'How much of everything — by percentage and units.'}
+        </p>
 
-        <div className="flex gap-2.5">
-          <div className="admin-btn admin-btn-ghost sm cursor-pointer">
-            Centro: Todos ▾
-          </div>
-          <button className="admin-btn admin-btn-ghost sm font-bold cursor-pointer">
+        <div className="flex gap-2.5 items-center">
+          <select
+            value={selectedCenter}
+            onChange={(e) => setSelectedCenter(e.target.value)}
+            className="admin-btn admin-btn-ghost sm cursor-pointer font-bold"
+            id="select-center-filter"
+          >
+            <option value="Todos">{lang === 'es' ? 'Centro: Todos' : 'Center: All'}</option>
+            <option value="Vargas · Casa Misionera">Vargas · Casa Misionera</option>
+            <option value="Caracas · Centro Principal">Caracas · Centro Principal</option>
+            <option value="Miranda · San Antonio">Miranda · San Antonio</option>
+          </select>
+          <button
+            onClick={handleExportAnalytics}
+            className="admin-btn admin-btn-ghost sm font-bold cursor-pointer"
+            id="btn-export-analytics"
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <path d="M7 10l5 5 5-5M12 15V3" />

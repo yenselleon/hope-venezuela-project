@@ -8,6 +8,13 @@ export const useUIStore = create((set, get) => ({
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
 
+  // ─── Filtros de Topbar Admin ───
+  selectedZoneFilter: 'Todas',
+  setSelectedZoneFilter: (zone) => set({ selectedZoneFilter: zone }),
+
+  selectedDateRangeFilter: '7d', // '7d' | '15d' | '30d' | 'all'
+  setSelectedDateRangeFilter: (range) => set({ selectedDateRangeFilter: range }),
+
   // ─── Toast ────────────────────────────────────────────────────────────────
   toast: null, // { message: string, type: 'success' | 'info' | 'error' }
   _toastTimer: null,
