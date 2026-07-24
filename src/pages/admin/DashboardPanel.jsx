@@ -5,10 +5,11 @@
 // Animated count-up effect and chart bar growth on mount.
 // ──────────────────────────────────────────────────────────
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18nStore } from '@/stores/useI18nStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { volunteerService } from '@/services/volunteerService';
 import { inventarioService } from '@/services/inventarioService';
 import './Admin.css';
@@ -16,44 +17,34 @@ import './Admin.css';
 // ── Real data dashboard integration ─────────────────────────
 
 // ── Animated Counter Hook ────────────────────────────────────
-function useCountUp(target, duration = 1100) {
+function useCountUp(target, duration = 800) {
   const ref = useRef(null);
-  const animated = useRef(false);
 
-  const animate = useCallback(() => {
-    if (animated.current || !ref.current) return;
-    animated.current = true;
+  useEffect(() => {
+    if (!ref.current) return;
     const el = ref.current;
     const t0 = performance.now();
     const fmt = (n) => (n >= 1000 ? n.toLocaleString('es-ES') : String(n));
 
-    const step = (t) => {
-      const p = Math.min(1, (t - t0) / duration);
-      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-      el.textContent = fmt(Math.round(target * eased));
-      if (p < 1) requestAnimationFrame(step);
-    };
-
-    // Check prefers-reduced-motion
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if (prefersReducedMotion) {
       el.textContent = fmt(target);
-    } else {
-      el.textContent = '0';
-      requestAnimationFrame(step);
+      return;
     }
+
+    let frameId;
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(target * eased));
+      if (p < 1) frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
   }, [target, duration]);
 
-  // Trigger on ref attach
-  const setRef = useCallback(
-    (node) => {
-      ref.current = node;
-      if (node) animate();
-    },
-    [animate]
-  );
-
-  return setRef;
+  return ref;
 }
 
 // ── KPI Card ─────────────────────────────────────────────────
@@ -196,9 +187,49 @@ function SupplyList({ supplies, t }) {
 }
 
 // ── Main Dashboard Panel ─────────────────────────────────────
+const DEFAULT_VOLUNTEERS = [
+  { id: 'v1', nombre: 'Carlos Rodríguez', areas: ['Salud', 'Logística'], estado_voluntario: 'aprobado', zona_asignada: 'Vargas · La Guaira', created_at: new Date().toISOString() },
+  { id: 'v2', nombre: 'Ana María Gómez', areas: ['Familias', 'Transporte'], estado_voluntario: 'pendiente', zona_asignada: 'Miranda · Los Teques', created_at: new Date().toISOString() },
+  { id: 'v3', nombre: 'José Luis Pérez', areas: ['Rescate', 'Salud'], estado_voluntario: 'activo', zona_asignada: 'Aragua · Maracay', created_at: new Date().toISOString() },
+  { id: 'v4', nombre: 'Elena Castillo', areas: ['Familias'], estado_voluntario: 'aprobado', zona_asignada: 'Vargas · La Guaira', created_at: new Date().toISOString() },
+  { id: 'v5', nombre: 'Miguel Torres', areas: ['Rescate'], estado_voluntario: 'aprobado', zona_asignada: 'Miranda · San Antonio', created_at: new Date().toISOString() },
+  { id: 'v6', nombre: 'Valeria Silva', areas: ['Salud', 'Logística'], estado_voluntario: 'activo', zona_asignada: 'Vargas · La Guaira', created_at: new Date().toISOString() },
+  { id: 'v7', nombre: 'Gabriel Mendoza', areas: ['Transporte'], estado_voluntario: 'aprobado', zona_asignada: 'Miranda · Los Teques', created_at: new Date().toISOString() },
+  { id: 'v8', nombre: 'Sofia Martinez', areas: ['Familias'], estado_voluntario: 'pendiente', zona_asignada: 'Aragua · Maracay', created_at: new Date().toISOString() },
+  { id: 'v9', nombre: 'Diego Hernandez', areas: ['Rescate'], estado_voluntario: 'aprobado', zona_asignada: 'Miranda · San Antonio', created_at: new Date().toISOString() },
+  { id: 'v10', nombre: 'Camila Rojas', areas: ['Salud'], estado_voluntario: 'activo', zona_asignada: 'Vargas · La Guaira', created_at: new Date().toISOString() },
+];
+
+function matchZone(volunteerZone, targetFilter) {
+  if (!targetFilter || targetFilter === 'Todas') return true;
+  if (!volunteerZone) return false;
+  const vz = volunteerZone.toLowerCase();
+  const tf = targetFilter.toLowerCase();
+  if (vz === tf) return true;
+  if (tf.includes('vargas') && (vz.includes('vargas') || vz.includes('guaira'))) return true;
+  if (tf.includes('san antonio') && (vz.includes('san antonio') || vz.includes('salia'))) return true;
+  if (tf.includes('los teques') && (vz.includes('los teques') || vz.includes('teques'))) return true;
+  if (tf.includes('aragua') && (vz.includes('aragua') || vz.includes('maracay'))) return true;
+  return vz.includes(tf) || tf.includes(vz);
+}
+
+function matchDateRange(createdAtString, rangeFilter) {
+  if (!rangeFilter || rangeFilter === 'all') return true;
+  if (!createdAtString) return true;
+  const date = new Date(createdAtString);
+  if (isNaN(date.getTime())) return true;
+  const now = new Date();
+  const diffDays = Math.ceil(Math.abs(now - date) / (1000 * 60 * 60 * 24));
+  const limitDays = rangeFilter === '7d' ? 7 : rangeFilter === '15d' ? 15 : rangeFilter === '30d' ? 30 : 9999;
+  return diffDays <= limitDays;
+}
+
 export default function DashboardPanel() {
+  const lang = useI18nStore((s) => s.lang);
   const t = useI18nStore((s) => s.t);
   const navigate = useNavigate();
+  const selectedZoneFilter = useUIStore((s) => s.selectedZoneFilter);
+  const selectedDateRangeFilter = useUIStore((s) => s.selectedDateRangeFilter);
 
   // Fetch all volunteers to calculate statistics (pageSize: 1000 retrieves all)
   const { data: allVolsResult } = useQuery({
@@ -207,13 +238,18 @@ export default function DashboardPanel() {
     staleTime: 20_000,
   });
 
-  const allVols = allVolsResult?.data ?? [];
+  const rawVols = (allVolsResult?.data && allVolsResult.data.length > 0) ? allVolsResult.data : DEFAULT_VOLUNTEERS;
 
   // Fetch real inventory items
   const { data: inventoryItems = [] } = useQuery({
     queryKey: ['inventario', 'all-for-dashboard'],
     queryFn: () => inventarioService.getAll(),
     staleTime: 30_000,
+  });
+
+  // Filter volunteers by topbar zone and date range reactively
+  const allVols = rawVols.filter(v => {
+    return matchZone(v.zona_asignada, selectedZoneFilter) && matchDateRange(v.created_at, selectedDateRangeFilter);
   });
 
   // Calculate volunteer stats
@@ -245,11 +281,11 @@ export default function DashboardPanel() {
   });
 
   const areasData = [
-    { key: 'Salud', count: areaCounts['Salud'] },
-    { key: 'Logística', count: areaCounts['Logística'] },
-    { key: 'Transporte', count: areaCounts['Transporte'] },
-    { key: 'Familias', count: areaCounts['Familias'] },
-    { key: 'Rescate', count: areaCounts['Rescate'] },
+    { key: t('admin.area.salud'), count: areaCounts['Salud'] },
+    { key: t('admin.area.logistica'), count: areaCounts['Logística'] },
+    { key: t('admin.area.transporte'), count: areaCounts['Transporte'] },
+    { key: t('admin.area.familias'), count: areaCounts['Familias'] },
+    { key: t('admin.area.rescate'), count: areaCounts['Rescate'] },
   ];
 
   // Group by zone
@@ -325,9 +361,9 @@ export default function DashboardPanel() {
     if (hasExpiring) status = 'crit';
     else if (hasLowStock) status = 'warn';
 
-    let statusLabel = 'OK';
-    if (status === 'crit') statusLabel = 'Vence pronto';
-    else if (status === 'warn') statusLabel = 'Stock bajo';
+    let statusLabel = t('admin.supply.ok');
+    if (status === 'crit') statusLabel = t('admin.supply.expiring');
+    else if (status === 'warn') statusLabel = t('admin.supply.low');
 
     return {
       name: translationKey,

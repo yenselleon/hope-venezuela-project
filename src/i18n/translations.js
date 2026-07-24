@@ -281,7 +281,17 @@ const translations = {
   // Topbar
   'admin.search': { es: 'Buscar voluntario…', en: 'Search volunteer…' },
   'admin.filter.zona': { es: 'Zona: Todas', en: 'Zone: All' },
+  'admin.filter.zona.all': { es: 'Zona: Todas', en: 'Zone: All' },
+  'admin.filter.zona.vargas': { es: 'Vargas · La Guaira', en: 'Vargas · La Guaira' },
+  'admin.filter.zona.sanantonio': { es: 'Miranda · San Antonio', en: 'Miranda · San Antonio' },
+  'admin.filter.zona.losteques': { es: 'Miranda · Los Teques', en: 'Miranda · Los Teques' },
+  'admin.filter.zona.aragua': { es: 'Aragua · Maracay', en: 'Aragua · Maracay' },
   'admin.filter.daterange': { es: 'Últimos 7 días', en: 'Last 7 days' },
+  'admin.filter.daterange.7d': { es: 'Últimos 7 días', en: 'Last 7 days' },
+  'admin.filter.daterange.15d': { es: 'Últimos 15 días', en: 'Last 15 days' },
+  'admin.filter.daterange.30d': { es: 'Últimos 30 días', en: 'Last 30 days' },
+  'admin.filter.daterange.all': { es: 'Todo el tiempo', en: 'All time' },
+  'admin.dash.totalUnits': { es: 'total', en: 'total' },
 
   // Dashboard KPIs
   'admin.kpi.total': { es: 'Voluntarios totales', en: 'Total volunteers' },

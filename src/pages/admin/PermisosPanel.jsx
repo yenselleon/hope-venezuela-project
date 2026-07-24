@@ -302,11 +302,12 @@ export default function PermisosPanel() {
   }
 
   return (
-    <div className="admin-rbac-wrap">
+    <div className="admin-panel admin-fade">
+      <div className="admin-rbac-wrap">
       {/* ── Topbar del panel ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="admin-rlock">🔒 Solo Super-Admin</span>
+          <span className="admin-rlock">Solo Super-Admin</span>
           <p style={{ margin: 0, font: '400 12px/1.4 Inter, system-ui, sans-serif', color: '#6B7280' }}>
             {t('admin.permisos.subtitle')}
           </p>
@@ -500,5 +501,6 @@ export default function PermisosPanel() {
         </>
       )}
     </div>
-  );
+  </div>
+);
 }

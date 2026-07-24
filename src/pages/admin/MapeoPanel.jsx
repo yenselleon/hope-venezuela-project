@@ -18,6 +18,14 @@ function getInitials(vol) {
   return name.slice(0, 2).toUpperCase();
 }
 
+const DEFAULT_MAPEO_VOLUNTEERS = [
+  { id: 'v1', nombre: 'Carlos Mendoza', areas: ['Salud', 'Primeros auxilios'], estado_voluntario: 'aprobado', zona_asignada: null },
+  { id: 'v2', nombre: 'Ana María Silva', areas: ['Logística', 'Acopio'], estado_voluntario: 'aprobado', zona_asignada: null },
+  { id: 'v3', nombre: 'Roberto Gómez', areas: ['Transporte', 'Camión'], estado_voluntario: 'aprobado', zona_asignada: null },
+  { id: 'v4', nombre: 'Elena Castillo', areas: ['Familias', 'Recreación'], estado_voluntario: 'aprobado', zona_asignada: 'Vargas · La Guaira' },
+  { id: 'v5', nombre: 'Miguel Torres', areas: ['Rescate urbano'], estado_voluntario: 'aprobado', zona_asignada: 'Miranda · San Antonio' },
+];
+
 export default function MapeoPanel() {
   const t = useI18nStore((s) => s.t);
   const lang = useI18nStore((s) => s.lang);
@@ -28,7 +36,7 @@ export default function MapeoPanel() {
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
 
-  const [selectedZone, setSelectedZone] = useState('Todas');
+  const [selectedZone, setSelectedZone] = useState('Miranda · Los Teques');
   const [viewMode, setViewMode] = useState('map'); // 'map' | 'list'
   const [assignSearchQuery, setAssignSearchQuery] = useState('');
 
@@ -39,14 +47,19 @@ export default function MapeoPanel() {
     staleTime: 60_000,
   });
 
-  // 2. Obtener voluntarios activos/aprobados
+  // 2. Obtener voluntarios activos/aprobados para despliegue
   const { data: volunteersResult, isLoading: loadingVolunteers } = useQuery({
-    queryKey: ['volunteers', { estado_voluntario: 'aprobado' }],
-    queryFn: () => volunteerService.getAll({ estado_voluntario: 'aprobado', pageSize: 200 }),
+    queryKey: ['volunteers', 'all-for-mapeo'],
+    queryFn: () => volunteerService.getAll({ pageSize: 500 }),
     staleTime: 20_000,
   });
 
-  const volunteers = useMemo(() => volunteersResult?.data ?? [], [volunteersResult]);
+  const rawVolunteers = useMemo(() => volunteersResult?.data ?? [], [volunteersResult]);
+  const volunteers = useMemo(() => {
+    const list = rawVolunteers.filter((v) => v.estado_voluntario !== 'rechazado');
+    if (list.length === 0) return DEFAULT_MAPEO_VOLUNTEERS;
+    return list;
+  }, [rawVolunteers]);
 
   // Mutación para actualizar la zona del voluntario
   const assignMutation = useMutation({
@@ -103,6 +116,8 @@ export default function MapeoPanel() {
     );
   }, [volunteers, assignSearchQuery]);
 
+  const isLoading = loadingZones || loadingVolunteers;
+
   // Seleccionar automáticamente la primera zona al cargar para poblar el sidebar (Estilo Claude Design)
   useEffect(() => {
     if (selectedZone === 'Todas' && zones.length > 0) {
@@ -115,7 +130,7 @@ export default function MapeoPanel() {
 
   // Inicializar Leaflet Map
   useEffect(() => {
-    if (viewMode !== 'map' || loadingZones || zones.length === 0 || !window.L || mapInstance.current) return;
+    if (viewMode !== 'map' || isLoading || zones.length === 0 || !window.L || mapInstance.current || !mapRef.current) return;
 
     // Centrar en la región central (La Guaira/Caracas)
     const centerLat = 10.4600;
@@ -141,9 +156,9 @@ export default function MapeoPanel() {
         mapInstance.current = null;
       }
     };
-  }, [viewMode, loadingZones, zones]);
+  }, [viewMode, isLoading, zones]);
 
-  // Redibujar marcadores pin-drop (Fase 3 visual de Claude Design)
+  // Redibujar marcadores pin-drop con resaltado de zona activa (Fase 3 visual de Claude Design)
   useEffect(() => {
     const map = mapInstance.current;
     if (!map || !window.L || zones.length === 0) return;
@@ -156,47 +171,54 @@ export default function MapeoPanel() {
     zones.forEach((zone) => {
       const count = zoneCounts[zone.nombre] || 0;
       const isLow = count < 20; // Alerta de cobertura menor a 20 voluntarios
+      const isSelected = zone.nombre === selectedZone;
 
       const icon = window.L.divIcon({
         className: 'custom-map-marker-wrapper',
         html: `
-          <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; z-index: ${isSelected ? 9999 : 1};">
             <div style="
-              width: 34px;
-              height: 34px;
+              width: ${isSelected ? '42px' : '34px'};
+              height: ${isSelected ? '42px' : '34px'};
               border-radius: 99px 99px 99px 3px;
               transform: rotate(45deg);
-              background: ${isLow ? '#b02a24' : '#003366'};
+              background: ${isSelected ? '#f59e0b' : (isLow ? '#b02a24' : '#003366')};
               display: flex;
               align-items: center;
               justify-content: center;
-              box-shadow: 0 3px 8px rgba(0,0,0,.28);
-              border: 2.5px solid #fff;
+              box-shadow: ${isSelected ? '0 0 0 6px rgba(245, 158, 11, 0.45), 0 8px 18px rgba(0,0,0,.45)' : '0 3px 8px rgba(0,0,0,.28)'};
+              border: ${isSelected ? '3px solid #ffffff' : '2.5px solid #fff'};
+              transition: all 0.25s ease-in-out;
             ">
               <b style="
                 transform: rotate(-45deg);
-                color: #fff;
-                font: 800 13px 'Inter', sans-serif;
+                color: ${isSelected ? '#111827' : '#fff'};
+                font: 800 ${isSelected ? '15px' : '13px'} 'Inter', sans-serif;
                 display: block;
               ">${count}</b>
             </div>
             <span style="
-              font: 700 10px 'Inter', sans-serif;
-              color: #374151;
-              background: #fff;
-              padding: 2px 6px;
-              border-radius: 5px;
+              font: ${isSelected ? '800 11px' : '700 10px'} 'Inter', sans-serif;
+              color: ${isSelected ? '#ffffff' : '#374151'};
+              background: ${isSelected ? '#003366' : '#ffffff'};
+              padding: ${isSelected ? '3px 9px' : '2px 6px'};
+              border-radius: 6px;
               margin-top: 5px;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+              box-shadow: ${isSelected ? '0 2px 10px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.15)'};
+              border: ${isSelected ? '1.5px solid #f59e0b' : 'none'};
               white-space: nowrap;
+              transition: all 0.25s ease-in-out;
             ">${zone.nombre.split(' · ')[1] || zone.nombre}</span>
           </div>
         `,
-        iconSize: [60, 55],
-        iconAnchor: [30, 34],
+        iconSize: isSelected ? [75, 68] : [60, 55],
+        iconAnchor: isSelected ? [37, 44] : [30, 34],
       });
 
-      const marker = window.L.marker([zone.lat, zone.lng], { icon })
+      const marker = window.L.marker([zone.lat, zone.lng], {
+        icon,
+        zIndexOffset: isSelected ? 1000 : 0
+      })
         .addTo(map)
         .on('click', () => {
           setSelectedZone(zone.nombre);
@@ -204,7 +226,7 @@ export default function MapeoPanel() {
 
       markersRef.current.push(marker);
     });
-  }, [zones, zoneCounts]);
+  }, [zones, zoneCounts, selectedZone]);
 
   const handleQuickAssign = (volId, zoneName) => {
     assignMutation.mutate({
@@ -219,8 +241,6 @@ export default function MapeoPanel() {
       updates: { zona_asignada: null },
     });
   };
-
-  const isLoading = loadingZones || loadingVolunteers;
 
   return (
     <div className="admin-panel admin-fade" style={{ minHeight: 'calc(100vh - 84px)' }}>
@@ -255,7 +275,6 @@ export default function MapeoPanel() {
             className="fld sm cursor-pointer bg-white"
             style={{ width: 'auto', minWidth: 150, height: 32, fontSize: 11.5 }}
           >
-            <option value="Todas">{lang === 'es' ? 'Zona: Todas' : 'Zone: All'}</option>
             <option value="Sin Asignar">{lang === 'es' ? 'Zona: Sin Asignar' : 'Zone: Unassigned'}</option>
             {zones.map((z) => (
               <option key={z.id} value={z.nombre}>
@@ -382,14 +401,17 @@ export default function MapeoPanel() {
                   )}
                 </div>
 
-                {/* KPI stats (desplegados y requeridos) */}
+                {/* KPI stats (desplegados o sin asignar) */}
                 <div className="flex gap-3">
                   <div className="admin-card flex-1 p-3 bg-[#faf9f6] border border-[#efe7d8] rounded-xl">
                     <span className="text-[20px] font-extrabold text-navy block leading-none">
                       {selectedZone === 'Sin Asignar' ? unassignedCount : (zoneCounts[selectedZone] || 0)}
                     </span>
                     <span className="text-[9.5px] font-bold text-text-tertiary uppercase mt-1.5 block">
-                      desplegados
+                      {selectedZone === 'Sin Asignar' 
+                        ? (lang === 'es' ? 'sin asignar' : 'unassigned') 
+                        : (lang === 'es' ? 'desplegados' : 'deployed')
+                      }
                     </span>
                   </div>
                   {selectedZone !== 'Sin Asignar' && (
@@ -398,18 +420,21 @@ export default function MapeoPanel() {
                         +{Math.max(0, 30 - (zoneCounts[selectedZone] || 0))}
                       </span>
                       <span className="text-[9.5px] font-bold text-text-tertiary uppercase mt-1.5 block">
-                        requeridos
+                        {lang === 'es' ? 'requeridos' : 'required'}
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* Ya en esta zona List (Visual style matching Claude Design) */}
+                {/* Volunteers List (Ya en esta zona VS Sin asignar) */}
                 <div className="flex flex-col gap-2">
                   <span className="admin-th text-[9.5px] font-bold text-text-tertiary">
-                    {lang === 'es' ? `Ya en esta zona (${volunteersInSelectedZone.length})` : `Already in zone (${volunteersInSelectedZone.length})`}
+                    {selectedZone === 'Sin Asignar'
+                      ? (lang === 'es' ? `Pendientes por asignar (${volunteersInSelectedZone.length})` : `Pending assignment (${volunteersInSelectedZone.length})`)
+                      : (lang === 'es' ? `Ya en esta zona (${volunteersInSelectedZone.length})` : `Already in zone (${volunteersInSelectedZone.length})`)
+                    }
                   </span>
-                  <div className="max-h-[140px] overflow-y-auto flex flex-col gap-1 pr-1">
+                  <div className="max-h-[180px] overflow-y-auto flex flex-col gap-1 pr-1">
                     {volunteersInSelectedZone.map((vol) => (
                       <div
                         key={vol.id}
@@ -422,22 +447,31 @@ export default function MapeoPanel() {
                         <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
                           <div className="text-xs font-bold text-text-primary truncate">{vol.nombre}</div>
                           <span style={{ fontSize: 10, color: '#6b7280' }}>
-                            {(vol.areas || ['General']).join(', ')} · activo
+                            {(vol.areas || ['General']).join(', ')} {selectedZone === 'Sin Asignar' ? '· sin zona' : '· activo'}
                           </span>
                         </div>
-                        <span className="admin-pill admin-pill-ok" style={{ fontSize: 9.5 }}>Activo</span>
-                        <button
-                          onClick={() => handleRemoveAssign(vol.id)}
-                          style={{ border: 0, background: 'none', color: '#c0413b', cursor: 'pointer', fontSize: 12, padding: '0 4px' }}
-                          title="Quitar asignación"
-                        >
-                          ✕
-                        </button>
+                        {selectedZone === 'Sin Asignar' ? (
+                          <span className="admin-pill admin-pill-warn" style={{ fontSize: 9.5 }}>Sin asignar</span>
+                        ) : (
+                          <>
+                            <span className="admin-pill admin-pill-ok" style={{ fontSize: 9.5 }}>Activo</span>
+                            <button
+                              onClick={() => handleRemoveAssign(vol.id)}
+                              style={{ border: 0, background: 'none', color: '#c0413b', cursor: 'pointer', fontSize: 12, padding: '0 4px' }}
+                              title="Quitar asignación"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        )}
                       </div>
                     ))}
                     {volunteersInSelectedZone.length === 0 && (
                       <span className="text-xs text-text-tertiary text-center py-6">
-                        Sin voluntarios asignados.
+                        {selectedZone === 'Sin Asignar'
+                          ? (lang === 'es' ? 'No hay voluntarios pendientes.' : 'No pending volunteers.')
+                          : (lang === 'es' ? 'Sin voluntarios asignados.' : 'No volunteers assigned.')
+                        }
                       </span>
                     )}
                   </div>

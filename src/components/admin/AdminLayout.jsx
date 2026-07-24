@@ -165,6 +165,10 @@ export default function AdminLayout() {
 
   const searchQuery = useUIStore((s) => s.searchQuery);
   const setSearchQuery = useUIStore((s) => s.setSearchQuery);
+  const selectedZoneFilter = useUIStore((s) => s.selectedZoneFilter);
+  const setSelectedZoneFilter = useUIStore((s) => s.setSelectedZoneFilter);
+  const selectedDateRangeFilter = useUIStore((s) => s.selectedDateRangeFilter);
+  const setSelectedDateRangeFilter = useUIStore((s) => s.setSelectedDateRangeFilter);
 
   // Fetch pending count for sidebar badge
   const { data: pendingData } = useQuery({
@@ -397,12 +401,32 @@ export default function AdminLayout() {
           </div>
 
           <div className="admin-top-extra">
-            <div className="admin-btn admin-btn-ghost sm">
-              {t('admin.filter.zona')} ▾
-            </div>
-            <div className="admin-btn admin-btn-ghost sm">
-              {t('admin.topbar.last7days')} ▾
-            </div>
+            <select
+              className="admin-btn admin-btn-ghost sm"
+              style={{ cursor: 'pointer' }}
+              value={selectedZoneFilter}
+              onChange={(e) => setSelectedZoneFilter(e.target.value)}
+              id="topbar-zone-filter"
+            >
+              <option value="Todas">{t('admin.filter.zona.all')}</option>
+              <option value="Vargas · La Guaira">{t('admin.filter.zona.vargas')}</option>
+              <option value="Miranda · San Antonio">{t('admin.filter.zona.sanantonio')}</option>
+              <option value="Miranda · Los Teques">{t('admin.filter.zona.losteques')}</option>
+              <option value="Aragua · Maracay">{t('admin.filter.zona.aragua')}</option>
+            </select>
+
+            <select
+              className="admin-btn admin-btn-ghost sm"
+              style={{ cursor: 'pointer' }}
+              value={selectedDateRangeFilter}
+              onChange={(e) => setSelectedDateRangeFilter(e.target.value)}
+              id="topbar-daterange-filter"
+            >
+              <option value="7d">{t('admin.filter.daterange.7d')}</option>
+              <option value="15d">{t('admin.filter.daterange.15d')}</option>
+              <option value="30d">{t('admin.filter.daterange.30d')}</option>
+              <option value="all">{t('admin.filter.daterange.all')}</option>
+            </select>
 
             {/* Language toggle */}
             <div className="admin-lngtog" onClick={toggleLang} role="button" tabIndex={0}>

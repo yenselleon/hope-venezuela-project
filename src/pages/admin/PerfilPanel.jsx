@@ -261,7 +261,8 @@ export default function PerfilPanel() {
   const rolePillClass = role === 'super_admin' ? 'admin-pill admin-pill-crit' : 'admin-pill admin-pill-info';
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    <div className="admin-panel admin-fade">
+      <div style={{ maxWidth: 640 }}>
       {/* ── Cabecera de perfil ── */}
       <div className="admin-card" style={{ padding: '20px 20px 16px' }}>
         <div className="admin-profile-header">
@@ -294,5 +295,6 @@ export default function PerfilPanel() {
         <LangSection />
       </div>
     </div>
-  );
+  </div>
+);
 }

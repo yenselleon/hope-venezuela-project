@@ -663,6 +663,17 @@
   color: #374151;
 }
 
+select.admin-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px !important;
+  outline: none;
+}
+
 .admin-btn-soft {
   background: #eef1f4;
   color: #374151;
@@ -1590,15 +1601,22 @@
 }
 
 .admin-sa-header {
-  font: 700 8px/1 Inter, system-ui, sans-serif;
+  font: 700 9px/1 Inter, system-ui, sans-serif;
   letter-spacing: .12em;
   color: #6f86a0;
   text-transform: uppercase;
-  padding: 8px 10px 4px;
+  padding: 12px 14px 6px;
   user-select: none;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+}
+
+.admin-sa-header svg {
+  width: 13px;
+  height: 13px;
+  color: #6f86a0;
+  flex-shrink: 0;
 }
 
 /* ── Toggle switch RBAC ─────────────────────────────────────────────────── */
@@ -1647,13 +1665,14 @@
 
 /* ── Matriz RBAC ────────────────────────────────────────────────────────── */
 .admin-rbac-wrap {
-  max-width: 680px;
+  width: 100%;
+  max-width: 900px;
 }
 
 .admin-mat-header {
   display: grid;
-  grid-template-columns: 1.9fr .8fr .8fr .8fr;
-  padding: 8px 14px;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr;
+  padding: 12px 20px;
   background: #fafbfc;
   border-bottom: 1px solid #eef1f4;
   font: 700 10px/1 Inter, system-ui, sans-serif;
@@ -1669,8 +1688,8 @@
 
 .admin-matrow {
   display: grid;
-  grid-template-columns: 1.9fr .8fr .8fr .8fr;
-  padding: 10px 14px;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr;
+  padding: 14px 20px;
   align-items: center;
   border-bottom: 1px solid #f1f3f6;
   transition: background .12s;
@@ -2024,27 +2043,37 @@
 /* ── Tabla de personal — staff grid ────────────────────────────────────── */
 .admin-staff-grid {
   display: grid;
-  grid-template-columns: 1.6fr 1.4fr .9fr .9fr 32px;
+  grid-template-columns: 1.5fr 1.5fr 1fr 1fr 36px;
+  gap: 12px;
+  padding: 12px 18px;
   align-items: center;
-  gap: 0;
-}
-
-.admin-staff-row {
-  display: contents;
-}
-
-.admin-staff-row > * {
-  padding: 10px 8px;
   border-bottom: 1px solid #f1f3f6;
-  display: flex;
-  align-items: center;
+  transition: background .12s;
 }
 
-.admin-staff-row.inactive > * {
+.admin-staff-grid:hover {
+  background: #f6f9fd;
+}
+
+.admin-staff-grid.header {
+  background: #fafbfc;
+  border-bottom: 1px solid #eef1f4;
+  font: 700 10px/1 Inter, system-ui, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #8a91a0;
+  padding: 10px 18px;
+}
+
+.admin-staff-grid.header:hover {
+  background: #fafbfc;
+}
+
+.admin-staff-grid.inactive {
   opacity: .55;
 }
 
-.admin-staff-row:last-child > * {
+.admin-staff-grid:last-child {
   border-bottom: none;
 }
 

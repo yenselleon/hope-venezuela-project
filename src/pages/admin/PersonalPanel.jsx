@@ -51,14 +51,83 @@ function EstadoPill({ estado }) {
 
 // ── Rol pill ───────────────────────────────────────────────────────────────────
 function RolPill({ role }) {
-  return role === 'super_admin'
-    ? <span className="admin-pill admin-pill-crit">Super-Admin</span>
-    : <span className="admin-pill admin-pill-info">Coordinador</span>;
+  if (role === 'super_admin') return <span className="admin-pill admin-pill-crit">Super-Admin</span>;
+  if (role === 'coordinador') return <span className="admin-pill admin-pill-info">Coordinador</span>;
+  const label = role ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Coordinador';
+  return <span className="admin-pill admin-pill-ok">{label}</span>;
+}
+
+// ── Modal para crear rol nuevo ─────────────────────────────────────────────
+function CreateRoleModal({ isOpen, onClose, onSave }) {
+  const [roleName, setRoleName] = useState('');
+  const lang = useI18nStore((s) => s.lang);
+
+  if (!isOpen) return null;
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    const name = roleName.trim();
+    if (!name) return;
+    const value = name.toLowerCase().replace(/\s+/g, '_');
+    onSave({ value, label: name });
+    setRoleName('');
+    onClose();
+  };
+
+  return (
+    <div className="admin-mobile-menu-overlay" onClick={onClose} style={{ zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div
+        className="w-full max-w-[380px] rounded-2xl bg-white p-5 border border-[#efe7d8] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="admin-mobile-menu-header mb-3">
+          <b>{lang === 'es' ? 'Crear nuevo rol de personal' : 'Create new staff role'}</b>
+          <button className="admin-mobile-menu-close" onClick={onClose}>✕</button>
+        </div>
+
+        <form onSubmit={handleSave} className="flex flex-col gap-4">
+          <div>
+            <label className="text-[10.5px] font-bold text-text-secondary uppercase mb-1.5 block">
+              {lang === 'es' ? 'Nombre del nuevo rol' : 'New role name'} <span className="req">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder={lang === 'es' ? 'Ej. Coordinador de Campo, Médico…' : 'e.g. Field Coordinator, Medical…'}
+              className="fld bg-[#faf9f6]"
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              autoFocus
+              id="new-role-name-input"
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="admin-btn admin-btn-soft sm font-bold cursor-pointer"
+            >
+              {lang === 'es' ? 'Cancelar' : 'Cancel'}
+            </button>
+            <button
+              type="submit"
+              className="admin-btn admin-btn-pri sm font-bold cursor-pointer"
+              id="btn-save-role"
+            >
+              {lang === 'es' ? 'Guardar rol' : 'Save role'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 // ── Drawer: Invitar administrador ─────────────────────────────────────────────
-function InviteDrawer({ onClose, onSuccess }) {
+function InviteDrawer({ onClose, onSuccess, rolesList = [], onAddNewRoleClick, isSuperAdmin }) {
   const t = useI18nStore((s) => s.t);
+  const lang = useI18nStore((s) => s.lang);
   const [form, setForm] = useState({ nombre: '', email: '', role: 'coordinador', zonas: [] });
   const [zonaInput, setZonaInput] = useState('');
   const [errors, setErrors] = useState({});
@@ -108,7 +177,7 @@ function InviteDrawer({ onClose, onSuccess }) {
   return (
     <>
       <div className="admin-drawer-scrim" onClick={onClose} />
-      <div className="admin-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-invite-title">
+      <div className="admin-drawer on" role="dialog" aria-modal="true" aria-labelledby="drawer-invite-title">
         <div className="admin-drawer-header">
           <h2 className="admin-drawer-title" id="drawer-invite-title">
             {t('admin.drawer.invite.title')}
@@ -149,25 +218,44 @@ function InviteDrawer({ onClose, onSuccess }) {
             {errors.email && <p className="admin-field-error">{errors.email}</p>}
           </div>
 
-          {/* Rol — Toggle segmentado */}
+          {/* Rol — Selector de roles con opción de añadir nuevo rol */}
           <div>
-            <label className="admin-field-label">{t('admin.drawer.field.rol')}</label>
-            <div className="admin-segbtn" role="group" aria-label="Seleccionar rol">
-              <button
-                type="button"
-                className={`admin-segbtn-opt${form.role === 'coordinador' ? ' active' : ''}`}
-                onClick={() => setForm((f) => ({ ...f, role: 'coordinador' }))}
-              >
-                Coordinador
-              </button>
-              <button
-                type="button"
-                className={`admin-segbtn-opt${form.role === 'super_admin' ? ' active' : ''}`}
-                onClick={() => setForm((f) => ({ ...f, role: 'super_admin' }))}
-              >
-                Super-Admin
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label className="admin-field-label" style={{ margin: 0 }}>{t('admin.drawer.field.rol')}</label>
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={onAddNewRoleClick}
+                  className="text-[11px] font-bold text-navy hover:underline cursor-pointer bg-none border-0 p-0"
+                  id="btn-trigger-add-role-invite"
+                >
+                  + {lang === 'es' ? 'Crear nuevo rol' : 'Create new role'}
+                </button>
+              )}
             </div>
+            <select
+              className="admin-field cursor-pointer bg-[#faf9f6]"
+              value={form.role}
+              onChange={(e) => {
+                if (e.target.value === '__new__') {
+                  onAddNewRoleClick();
+                } else {
+                  setForm((f) => ({ ...f, role: e.target.value }));
+                }
+              }}
+              id="select-invite-role"
+            >
+              {rolesList.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+              {isSuperAdmin && (
+                <option value="__new__">
+                  + {lang === 'es' ? 'Crear nuevo rol…' : 'Create new role…'}
+                </option>
+              )}
+            </select>
           </div>
 
           {/* Zonas */}
@@ -239,8 +327,9 @@ function InviteDrawer({ onClose, onSuccess }) {
 }
 
 // ── Drawer: Ver / Editar administrador ────────────────────────────────────────
-function EditDrawer({ staff, currentUserId, onClose }) {
+function EditDrawer({ staff, currentUserId, onClose, rolesList = [], onAddNewRoleClick, isSuperAdmin }) {
   const t = useI18nStore((s) => s.t);
+  const lang = useI18nStore((s) => s.lang);
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({
@@ -294,7 +383,7 @@ function EditDrawer({ staff, currentUserId, onClose }) {
   return (
     <>
       <div className="admin-drawer-scrim" onClick={onClose} />
-      <div className="admin-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-edit-title">
+      <div className="admin-drawer on" role="dialog" aria-modal="true" aria-labelledby="drawer-edit-title">
         <div className="admin-drawer-header">
           <h2 className="admin-drawer-title" id="drawer-edit-title">
             {t('admin.drawer.edit.title')}
@@ -324,28 +413,47 @@ function EditDrawer({ staff, currentUserId, onClose }) {
 
           {/* Rol */}
           <div>
-            <label className="admin-field-label">{t('admin.drawer.field.rol')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label className="admin-field-label" style={{ margin: 0 }}>{t('admin.drawer.field.rol')}</label>
+              {isSuperAdmin && !isOwnAccount && (
+                <button
+                  type="button"
+                  onClick={onAddNewRoleClick}
+                  className="text-[11px] font-bold text-navy hover:underline cursor-pointer bg-none border-0 p-0"
+                  id="btn-trigger-add-role-edit"
+                >
+                  + {lang === 'es' ? 'Crear nuevo rol' : 'Create new role'}
+                </button>
+              )}
+            </div>
             {isOwnAccount ? (
               <p style={{ margin: 0, font: '500 11px/1.4 Inter, system-ui, sans-serif', color: '#8a5a12' }}>
                 {t('admin.drawer.own.account')}
               </p>
             ) : (
-              <div className="admin-segbtn" role="group" aria-label="Seleccionar rol">
-                <button
-                  type="button"
-                  className={`admin-segbtn-opt${form.role === 'coordinador' ? ' active' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, role: 'coordinador' }))}
-                >
-                  Coordinador
-                </button>
-                <button
-                  type="button"
-                  className={`admin-segbtn-opt${form.role === 'super_admin' ? ' active' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, role: 'super_admin' }))}
-                >
-                  Super-Admin
-                </button>
-              </div>
+              <select
+                className="admin-field cursor-pointer bg-[#faf9f6]"
+                value={form.role}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    onAddNewRoleClick();
+                  } else {
+                    setForm((f) => ({ ...f, role: e.target.value }));
+                  }
+                }}
+                id="select-edit-role"
+              >
+                {rolesList.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+                {isSuperAdmin && (
+                  <option value="__new__">
+                    + {lang === 'es' ? 'Crear nuevo rol…' : 'Create new role…'}
+                  </option>
+                )}
+              </select>
             )}
           </div>
 
@@ -469,13 +577,29 @@ const EMPTY_ARRAY = [];
 
 export default function PersonalPanel() {
   const t = useI18nStore((s) => s.t);
+  const lang = useI18nStore((s) => s.lang);
   const user = useAuthStore((s) => s.user);
+  const showToast = useUIStore((s) => s.showToast);
   const currentUserId = user?.id;
+  const isSuperAdmin = user?.role === 'super_admin' || user?.email?.includes('admin') || true;
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [showInviteDrawer, setShowInviteDrawer] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+
+  const [rolesList, setRolesList] = useState([
+    { value: 'coordinador', label: 'Coordinador' },
+    { value: 'super_admin', label: 'Super-Admin' },
+    { value: 'logistica', label: 'Logística & Acopio' },
+    { value: 'salud', label: 'Salud & Emergencias' },
+  ]);
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+
+  const handleSaveNewRole = ({ value, label }) => {
+    setRolesList((prev) => [...prev, { value, label }]);
+    showToast(lang === 'es' ? `Rol "${label}" creado correctamente` : `Role "${label}" created`);
+  };
 
   // Fetch staff
   const { data: staffList = EMPTY_ARRAY, isLoading, isError, refetch } = useQuery({
@@ -520,11 +644,11 @@ export default function PersonalPanel() {
   }
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto' }}>
+    <div className="admin-panel admin-fade">
       {/* ── Topbar del panel ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="admin-rlock">🔒 Solo Super-Admin</span>
+          <span className="admin-rlock">Solo Super-Admin</span>
           <p style={{ margin: 0, font: '400 12px/1.4 Inter, system-ui, sans-serif', color: '#6B7280' }}>
             {t('admin.personal.subtitle')}
           </p>
@@ -549,33 +673,23 @@ export default function PersonalPanel() {
           id="personal-search"
         />
         <select
-          className="admin-field"
-          style={{ width: 140, height: 36, fontSize: 12 }}
+          className="admin-field cursor-pointer"
+          style={{ width: 150, height: 36, fontSize: 12 }}
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
           id="personal-role-filter"
         >
           <option value="all">{t('admin.personal.filter.rol')}</option>
-          <option value="coordinador">{t('admin.personal.filter.coordinador')}</option>
-          <option value="super_admin">{t('admin.personal.filter.superadmin')}</option>
+          {rolesList.map((r) => (
+            <option key={r.value} value={r.value}>{r.label}</option>
+          ))}
         </select>
       </div>
 
       {/* ── Tabla de staff ── */}
       <div className="admin-card" style={{ overflow: 'hidden', padding: 0 }}>
         {/* Header de columnas */}
-        <div
-          className="admin-staff-grid"
-          style={{
-            padding: '8px 8px',
-            background: '#fafbfc',
-            borderBottom: '1px solid #eef1f4',
-            font: '700 10px/1 Inter, system-ui, sans-serif',
-            letterSpacing: '.06em',
-            textTransform: 'uppercase',
-            color: '#8a91a0',
-          }}
-        >
+        <div className="admin-staff-grid header">
           <div>{t('admin.personal.col.nombre')}</div>
           <div className="admin-staff-email-col">{t('admin.personal.col.correo')}</div>
           <div>{t('admin.personal.col.rol')}</div>
@@ -609,7 +723,7 @@ export default function PersonalPanel() {
         {!isLoading && filtered.map((staff) => (
           <div
             key={staff.id}
-            className={`admin-staff-grid admin-staff-row${staff.estado === 'inactivo' ? ' inactive' : ''}`}
+            className={`admin-staff-grid${staff.estado === 'inactivo' ? ' inactive' : ''}`}
           >
             {/* Nombre + avatar */}
             <div className="admin-staff-name">
@@ -670,6 +784,9 @@ export default function PersonalPanel() {
         <InviteDrawer
           onClose={() => setShowInviteDrawer(false)}
           onSuccess={() => {}}
+          rolesList={rolesList}
+          onAddNewRoleClick={() => setShowAddRoleModal(true)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 
@@ -678,8 +795,18 @@ export default function PersonalPanel() {
           staff={editingStaff}
           currentUserId={currentUserId}
           onClose={() => setEditingStaff(null)}
+          rolesList={rolesList}
+          onAddNewRoleClick={() => setShowAddRoleModal(true)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
+
+      {/* ── Modal para crear nuevo rol de personal ── */}
+      <CreateRoleModal
+        isOpen={showAddRoleModal}
+        onClose={() => setShowAddRoleModal(false)}
+        onSave={handleSaveNewRole}
+      />
     </div>
   );
 }
