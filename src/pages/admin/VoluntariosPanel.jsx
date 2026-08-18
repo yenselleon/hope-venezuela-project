@@ -58,6 +58,55 @@ function VolFlags({ vol }) {
   );
 }
 
+// ── Availability Parser ──────────────────────────────────────
+const WEEK_DAYS = [
+  { key: 'lun', labelKey: 'admin.detail.day.lun', match: ['lun', 'lunes'] },
+  { key: 'mar', labelKey: 'admin.detail.day.mar', match: ['mar', 'martes'] },
+  { key: 'mie', labelKey: 'admin.detail.day.mie', match: ['mie', 'mié', 'miércoles', 'miercoles'] },
+  { key: 'jue', labelKey: 'admin.detail.day.jue', match: ['jue', 'jueves'] },
+  { key: 'vie', labelKey: 'admin.detail.day.vie', match: ['vie', 'viernes'] },
+  { key: 'sab', labelKey: 'admin.detail.day.sab', match: ['sab', 'sáb', 'sábado', 'sabado'] },
+  { key: 'dom', labelKey: 'admin.detail.day.dom', match: ['dom', 'domingo'] },
+];
+
+function parseAvailabilityMap(turnos) {
+  const map = { lun: [], mar: [], mie: [], jue: [], vie: [], sab: [], dom: [] };
+  if (!Array.isArray(turnos) || turnos.length === 0) return map;
+
+  turnos.forEach((raw) => {
+    if (!raw) return;
+    const str = String(raw).toLowerCase().trim();
+    const parts = str.split(':');
+    if (parts.length === 2) {
+      const dCode = parts[0];
+      const sCode = parts[1];
+      const day = WEEK_DAYS.find((d) => d.match.includes(dCode));
+      if (day) {
+        let badge = { code: 'M', cls: 'admin-shift-badge-m', labelKey: 'admin.detail.shift.m' };
+        if (sCode.startsWith('m')) badge = { code: '☀️ M', cls: 'admin-shift-badge-m', labelKey: 'admin.detail.shift.m' };
+        else if (sCode.startsWith('t')) badge = { code: '🌤️ T', cls: 'admin-shift-badge-t', labelKey: 'admin.detail.shift.t' };
+        else if (sCode.startsWith('n')) badge = { code: '🌙 N', cls: 'admin-shift-badge-n', labelKey: 'admin.detail.shift.n' };
+        else if (sCode.includes('24')) badge = { code: '⚡ 24h', cls: 'admin-shift-badge-24h', labelKey: 'admin.detail.shift.24h' };
+        if (!map[day.key].some((b) => b.code === badge.code)) map[day.key].push(badge);
+        return;
+      }
+    }
+
+    WEEK_DAYS.forEach((day) => {
+      if (day.match.some((m) => str.includes(m))) {
+        let badge = { code: '✓', cls: 'admin-shift-badge-m', labelKey: 'admin.detail.shift.m' };
+        if (str.includes('mañana') || str.includes('manana')) badge = { code: '☀️ M', cls: 'admin-shift-badge-m', labelKey: 'admin.detail.shift.m' };
+        else if (str.includes('tarde')) badge = { code: '🌤️ T', cls: 'admin-shift-badge-t', labelKey: 'admin.detail.shift.t' };
+        else if (str.includes('noche')) badge = { code: '🌙 N', cls: 'admin-shift-badge-n', labelKey: 'admin.detail.shift.n' };
+        else if (str.includes('24')) badge = { code: '⚡ 24h', cls: 'admin-shift-badge-24h', labelKey: 'admin.detail.shift.24h' };
+        if (!map[day.key].some((b) => b.code === badge.code)) map[day.key].push(badge);
+      }
+    });
+  });
+
+  return map;
+}
+
 // ── Drawer Component ─────────────────────────────────────────
 function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onApprove, onReject, onAssign, t, isPending }) {
   if (!volunteer) return null;
@@ -67,6 +116,13 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
   const hasCert = vol.certificaciones && vol.certificaciones.length > 0;
   const isRescue = vol.areas?.some((a) => a.toLowerCase().includes('rescat'));
   const zonDisplay = vol.zona_asignada || '';
+
+  // Location string
+  const locationParts = [vol.municipio, vol.estado].filter(Boolean).join(', ');
+  const residenceText = locationParts || vol.pais || '';
+
+  // Availability map
+  const availMap = parseAvailabilityMap(vol.turnos);
 
   return (
     <div className={`admin-drawer on`}>
@@ -78,15 +134,22 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
 
       {/* Body */}
       <div className="admin-drawer-body">
-        {/* Avatar + name + pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="admin-avatar" style={{ width: 52, height: 52, fontSize: 18 }}>{ini}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <b style={{ font: '800 17px Inter, system-ui, sans-serif', color: '#111827' }}>{vol.nombre}</b>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        {/* Avatar + name + profession + pills */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div className="admin-avatar" style={{ width: 54, height: 54, fontSize: 19 }}>{ini}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+            <b style={{ font: '800 17px Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.2 }}>{vol.nombre}</b>
+            {vol.profesion && (
+              <span style={{ font: '600 12.5px Inter', color: '#4b5563' }}>💼 {vol.profesion}</span>
+            )}
+            {residenceText && (
+              <span style={{ font: '500 11.5px Inter', color: '#6B7280' }}>📍 {residenceText}</span>
+            )}
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>
               <StatusPill estado={vol.estado_voluntario} t={t} />
               {isMinor && <span className="admin-pill admin-pill-crit">⚠ {t('admin.flag.menor')}</span>}
               {isRescue && <span className="admin-pill admin-pill-info">★ {t('admin.flag.rescate')}</span>}
+              {vol.extranjero && <span className="admin-pill admin-pill-neutral">🌐 {vol.pais || 'Exterior'}</span>}
             </div>
           </div>
         </div>
@@ -100,58 +163,150 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
             </button>
           </div>
           <div className="admin-drawer-data-row">
-            <span className="admin-drawer-data-label">{t('admin.field.cedula')}</span>
+            <span className="admin-drawer-data-label">{t('admin.table.cedula')}</span>
             <span className={revealed ? 'admin-td' : 'admin-mask'}>
               {revealed ? `V-${vol.cedula}` : maskCedula(vol.cedula)}
             </span>
           </div>
           <div className="admin-drawer-data-row">
-            <span className="admin-drawer-data-label">{t('admin.field.telefono')}</span>
+            <span className="admin-drawer-data-label">{t('campo.telefono')}</span>
             <span className={revealed ? 'admin-td' : 'admin-mask'}>
               {revealed ? vol.telefono : maskTelefono(vol.telefono)}
             </span>
           </div>
           <div className="admin-drawer-data-row">
             <span className="admin-drawer-data-label">{t('admin.detail.ageGender')}</span>
-            <span className="admin-td">{vol.edad} · {vol.genero}</span>
+            <span className="admin-td">{vol.edad ? `${vol.edad} años` : '—'} · {vol.genero || '—'}</span>
           </div>
         </div>
 
-        {/* Areas & certifications */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span className="admin-th">{t('admin.detail.areas')}</span>
+        {/* Áreas y Capacidades */}
+        <div className="admin-drawer-section">
+          <span className="admin-th">🧰 {t('admin.detail.areas')}</span>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {vol.areas?.map((a) => (
               <span className="admin-pill admin-pill-info" key={a}>{a}</span>
             ))}
-            {hasCert
-              ? vol.certificaciones.map((c) => <span className="admin-pill admin-pill-neutral" key={c}>{c}</span>)
-              : <span style={{ font: '500 12px Inter', color: '#b3b8c0' }}>{t('admin.detail.noCerts')}</span>
-            }
-            {vol.vehiculo && <span className="admin-pill admin-pill-neutral">{t('admin.field.vehiculo')}: {vol.vehiculo}</span>}
+          </div>
+          {vol.especialidad_salud && (
+            <div className="admin-drawer-data-row">
+              <span className="admin-drawer-data-label">{t('admin.detail.especialidad')}:</span>
+              <span className="admin-td" style={{ fontStyle: 'italic' }}>{vol.especialidad_salud}</span>
+            </div>
+          )}
+          {vol.grado_academico && (
+            <div className="admin-drawer-data-row">
+              <span className="admin-drawer-data-label">{t('admin.detail.grado')}:</span>
+              <span className="admin-td">{vol.grado_academico}</span>
+            </div>
+          )}
+          {hasCert ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="admin-drawer-data-label">{t('admin.detail.certificaciones')}:</span>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {vol.certificaciones.map((c) => (
+                  <span className="admin-pill admin-pill-neutral" key={c}>★ {c}</span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <span style={{ font: '500 12px Inter', color: '#b3b8c0' }}>{t('admin.detail.noCerts')}</span>
+          )}
+          {vol.vehiculo && (
+            <div className="admin-drawer-data-row">
+              <span className="admin-drawer-data-label">🚗 {t('admin.detail.vehiculo')}:</span>
+              <span className="admin-td">{vol.vehiculo}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Disponibilidad Semanal Grid */}
+        <div className="admin-drawer-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="admin-th">📅 {t('admin.detail.disponibilidad')}</span>
+            <span style={{ font: '500 10px Inter', color: '#8a91a0' }}>☀️ M  🌤️ T  🌙 N</span>
+          </div>
+
+          <div className="admin-avail-grid">
+            {WEEK_DAYS.map((day) => {
+              const shifts = availMap[day.key];
+              const isAvailable = shifts.length > 0;
+              return (
+                <div key={day.key} className={`admin-avail-day${isAvailable ? ' on' : ''}`}>
+                  <span className="admin-avail-day-name">{t(day.labelKey)}</span>
+                  <div className="admin-avail-shifts">
+                    {isAvailable ? (
+                      shifts.map((s, idx) => (
+                        <span key={idx} className={`admin-shift-badge ${s.cls}`}>
+                          {s.code}
+                        </span>
+                      ))
+                    ) : (
+                      <span style={{ color: '#c5cad3', fontSize: 10 }}>—</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Modalidad, Movilización y Hospedaje */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+            {vol.duracion && (
+              <div className="admin-drawer-data-row">
+                <span className="admin-drawer-data-label">⏳ {t('admin.detail.duracion')}:</span>
+                <span className="admin-td">
+                  {vol.duracion} {vol.duracion_dias ? `(${vol.duracion_dias} días)` : ''}
+                </span>
+              </div>
+            )}
+            {vol.movilizacion && (
+              <div className="admin-drawer-data-row">
+                <span className="admin-drawer-data-label">🚶 {t('admin.detail.movilizacion')}:</span>
+                <span className="admin-td">{vol.movilizacion}</span>
+              </div>
+            )}
+            {vol.hospedaje && (
+              <div className="admin-drawer-data-row">
+                <span className="admin-drawer-data-label">🏠 {t('admin.detail.hospedaje')}:</span>
+                <span className="admin-td">{vol.hospedaje}</span>
+              </div>
+            )}
+            {vol.apoyo_logistico && vol.apoyo_logistico.length > 0 && (
+              <div className="admin-drawer-data-row">
+                <span className="admin-drawer-data-label">📦 {t('admin.detail.apoyoLogistico')}:</span>
+                <span className="admin-td">{vol.apoyo_logistico.join(', ')}</span>
+              </div>
+            )}
+            {vol.familia && vol.familia.length > 0 && (
+              <div className="admin-drawer-data-row">
+                <span className="admin-drawer-data-label">👥 {t('admin.detail.familia')}:</span>
+                <span className="admin-td">{vol.familia.join(', ')}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Availability */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span className="admin-th">{t('admin.detail.disponibilidad')}</span>
-          <span className="admin-td">{vol.turnos?.join(', ') || '—'}</span>
-        </div>
-
         {/* Zone assigned */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span className="admin-th">{t('admin.detail.zoneAssigned')}</span>
+        <div className="admin-drawer-section">
+          <span className="admin-th">📍 {t('admin.detail.zoneAssigned')}</span>
           <div
             className="admin-field cursor-pointer hover:border-navy transition-colors"
             style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
             onClick={onAssign}
           >
-            {zonDisplay ? zonDisplay : <span style={{ color: '#b3b8c0' }}>{t('admin.field.none')}</span>}
+            {zonDisplay ? zonDisplay : <span style={{ color: '#b3b8c0' }}>{t('admin.table.sinAsignar')}</span>}
             <span style={{ color: '#9aa0a6' }}>▾</span>
           </div>
           <span style={{ font: '500 11px Inter', color: '#8a91a0' }}>
             {t('admin.detail.desiredZone')}: {vol.zonas?.join(', ') || '—'}
           </span>
+          {vol.notas_admin && (
+            <div style={{ marginTop: 4, padding: '8px 10px', background: '#fafbfc', borderRadius: 8, border: '1px solid #eef1f4' }}>
+              <span className="admin-th" style={{ fontSize: 9 }}>{t('admin.detail.notasAdmin')}</span>
+              <p style={{ margin: '2px 0 0', font: '500 12px Inter', color: '#4b5563' }}>{vol.notas_admin}</p>
+            </div>
+          )}
         </div>
       </div>
 

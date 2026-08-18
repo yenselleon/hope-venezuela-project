@@ -25,6 +25,7 @@ const INITIAL_STEP2 = {
   gradoAcademico: '',
   vehiculo: '',
   certificaciones: [],
+  otraArea: '',
 };
 
 const INITIAL_STEP3 = {

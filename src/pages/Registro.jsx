@@ -389,10 +389,10 @@ export function Registro() {
                         </span>
                         <div>
                           <b className="font-bold text-sm md:text-[15px] text-text-primary">
-                            {area.label}
+                            {lang === 'en' && area.labelEN ? area.labelEN : area.label}
                           </b>
                           <div className="font-normal text-xs text-[#6B7280] mt-0.5">
-                            {area.desc}
+                            {lang === 'en' && area.descEN ? area.descEN : area.desc}
                           </div>
                         </div>
                       </button>
@@ -448,6 +448,28 @@ export function Registro() {
                               );
                             })}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Campos dinámicos de Otra área de apoyo */}
+                      {area.value === 'Otra área de apoyo' && isSel && (
+                        <div className="sub on">
+                          <label className="lbl">
+                            {lang === 'es' ? 'Especifica tu área de apoyo o especialidad' : 'Specify your support area or specialty'}{' '}
+                            <span className="req">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            className={cn("fld", errors.otraArea && "bad")}
+                            placeholder={
+                              lang === 'es'
+                                ? 'Ej. Cocina comunitaria, evaluación de edificios, redacción jurídica...'
+                                : 'e.g. Community kitchen, building evaluation, legal writing...'
+                            }
+                            value={step2.otraArea || ''}
+                            onChange={(e) => updateField(2, 'otraArea', e.target.value)}
+                          />
+                          {errors.otraArea && <div className="err on">{errors.otraArea}</div>}
                         </div>
                       )}
                     </div>

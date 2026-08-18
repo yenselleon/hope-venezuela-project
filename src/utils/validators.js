@@ -95,7 +95,7 @@ export function validateStep1(data) {
 }
 
 /**
- * Valida el paso 2: al menos 1 área seleccionada.
+ * Valida el paso 2: al menos 1 área seleccionada y otraArea requerido si se seleccionó 'Otra área de apoyo'.
  */
 export function validateStep2(data) {
   const errors = {};
@@ -103,6 +103,11 @@ export function validateStep2(data) {
 
   const areas = validateMinOne(data.areas, 'Selecciona al menos un área de apoyo.');
   if (!areas.valid) { errors.areas = areas.error; valid = false; }
+
+  if (Array.isArray(data.areas) && data.areas.includes('Otra área de apoyo')) {
+    const otraArea = validateRequired(data.otraArea, 'Especifica tu área de apoyo.');
+    if (!otraArea.valid) { errors.otraArea = otraArea.error; valid = false; }
+  }
 
   return { valid, errors };
 }
