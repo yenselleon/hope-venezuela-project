@@ -12,6 +12,7 @@ import { useI18nStore } from '@/stores/useI18nStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { volunteerService } from '@/services/volunteerService';
 import { inventarioService } from '@/services/inventarioService';
+import { matchZone } from '@/utils/formatters';
 import './Admin.css';
 
 // ── Real data dashboard integration ─────────────────────────
@@ -200,19 +201,6 @@ const DEFAULT_VOLUNTEERS = [
   { id: 'v10', nombre: 'Camila Rojas', areas: ['Salud'], estado_voluntario: 'activo', zona_asignada: 'Vargas · La Guaira', created_at: new Date().toISOString() },
 ];
 
-function matchZone(volunteerZone, targetFilter) {
-  if (!targetFilter || targetFilter === 'Todas') return true;
-  if (!volunteerZone) return false;
-  const vz = volunteerZone.toLowerCase();
-  const tf = targetFilter.toLowerCase();
-  if (vz === tf) return true;
-  if (tf.includes('vargas') && (vz.includes('vargas') || vz.includes('guaira'))) return true;
-  if (tf.includes('san antonio') && (vz.includes('san antonio') || vz.includes('salia'))) return true;
-  if (tf.includes('los teques') && (vz.includes('los teques') || vz.includes('teques'))) return true;
-  if (tf.includes('aragua') && (vz.includes('aragua') || vz.includes('maracay'))) return true;
-  return vz.includes(tf) || tf.includes(vz);
-}
-
 function matchDateRange(createdAtString, rangeFilter) {
   if (!rangeFilter || rangeFilter === 'all') return true;
   if (!createdAtString) return true;
@@ -255,7 +243,7 @@ export default function DashboardPanel() {
   // Calculate volunteer stats
   const totalVol = allVols.length;
   const pending = allVols.filter(v => v.estado_voluntario === 'pendiente').length;
-  const active = allVols.filter(v => v.estado_voluntario === 'activo').length;
+  const active = allVols.filter(v => v.estado_voluntario === 'activo' || v.estado_voluntario === 'asignado').length;
   const approvedCount = allVols.filter(v => v.estado_voluntario === 'aprobado').length;
 
   const activePct = totalVol > 0 ? Math.round((active / totalVol) * 100) : 0;
@@ -290,6 +278,7 @@ export default function DashboardPanel() {
 
   // Group by zone
   const zoneCounts = {
+    'Distrito Capital · Caracas': 0,
     'Vargas · La Guaira': 0,
     'Miranda · San Antonio': 0,
     'Miranda · Los Teques': 0,
@@ -302,6 +291,7 @@ export default function DashboardPanel() {
   });
 
   const zonesData = [
+    { name: 'Caracas', count: zoneCounts['Distrito Capital · Caracas'], pct: Math.min(100, Math.round((zoneCounts['Distrito Capital · Caracas'] / 30) * 100)), isRed: zoneCounts['Distrito Capital · Caracas'] < 20 },
     { name: 'Vargas', count: zoneCounts['Vargas · La Guaira'], pct: Math.min(100, Math.round((zoneCounts['Vargas · La Guaira'] / 30) * 100)), isRed: zoneCounts['Vargas · La Guaira'] < 20 },
     { name: 'Miranda S.A.', count: zoneCounts['Miranda · San Antonio'], pct: Math.min(100, Math.round((zoneCounts['Miranda · San Antonio'] / 30) * 100)), isRed: zoneCounts['Miranda · San Antonio'] < 20 },
     { name: 'Los Teques', count: zoneCounts['Miranda · Los Teques'], pct: Math.min(100, Math.round((zoneCounts['Miranda · Los Teques'] / 30) * 100)), isRed: zoneCounts['Miranda · Los Teques'] < 20 },

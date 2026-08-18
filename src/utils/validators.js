@@ -42,6 +42,17 @@ export function validatePhone(value) {
 }
 
 /**
+ * Valida formato de correo electrónico.
+ */
+export function validateEmail(value) {
+  const v = (value ?? '').toString().trim();
+  if (!v) return { valid: false, error: 'Ingresa tu correo electrónico.' };
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(v)) return { valid: false, error: 'Ingresa un correo electrónico válido.' };
+  return { valid: true, error: '' };
+}
+
+/**
  * Valida campo requerido (no vacío después de trim).
  */
 export function validateRequired(value, errorMsg = 'Este campo es requerido.') {
@@ -79,6 +90,9 @@ export function validateStep1(data) {
 
   const tel = validatePhone(data.telefono);
   if (!tel.valid) { errors.telefono = tel.error; valid = false; }
+
+  const email = validateEmail(data.email);
+  if (!email.valid) { errors.email = email.error; valid = false; }
 
   if (data.extranjero) {
     const pais = validateRequired(data.pais, 'Indica tu país de procedencia.');

@@ -11,6 +11,7 @@ const INITIAL_STEP1 = {
   cedula: '',
   edad: '',
   telefono: '',
+  email: '',
   genero: '',
   estado: '',
   municipio: '',

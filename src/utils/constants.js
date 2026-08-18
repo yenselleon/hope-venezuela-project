@@ -144,6 +144,7 @@ export const GRADOS_ACADEMICOS = [
 
 // ─── Zonas de despliegue ───────────────────────────────────────────────────
 export const ZONAS_DESPLIEGUE = [
+  { value: 'Distrito Capital · Caracas', label: 'Distrito Capital · Caracas' },
   { value: 'Vargas · La Guaira', label: 'Vargas · La Guaira' },
   { value: 'Miranda · San Antonio', label: 'Miranda · San Antonio' },
   { value: 'Miranda · Los Teques', label: 'Miranda · Los Teques' },

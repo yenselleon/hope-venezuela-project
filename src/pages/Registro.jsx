@@ -7,6 +7,7 @@ import React from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useFormStore } from '@/stores/useFormStore';
 import { useI18nStore } from '@/stores/useI18nStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { volunteerService } from '@/services/volunteerService';
 import { GridTurnos } from '@/components/ui/GridTurnos';
 import {
@@ -35,6 +36,7 @@ import './Registro.css';
 export function Registro() {
   const t = useI18nStore((s) => s.t);
   const lang = useI18nStore((s) => s.lang);
+  const showToast = useUIStore((s) => s.showToast);
 
   // Zustand Store de Formulario
   const {
@@ -59,6 +61,9 @@ export function Registro() {
     onSuccess: () => {
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    onError: (err) => {
+      showToast(err?.message || t('registro.error'), 'error', 4500);
     },
   });
 
@@ -250,6 +255,19 @@ export function Registro() {
                     />
                     {errors.telefono && <div className="err on">{errors.telefono}</div>}
                   </div>
+                </div>
+                <div>
+                  <label className="lbl">
+                    {t('campo.email')} <span className="req">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    className={cn("fld", errors.email && "bad")}
+                    placeholder={lang === 'es' ? 'Ej. maria.gonzalez@correo.com' : 'e.g. maria.gonzalez@example.com'}
+                    value={step1.email}
+                    onChange={(e) => updateField(1, 'email', e.target.value)}
+                  />
+                  {errors.email && <div className="err on">{errors.email}</div>}
                 </div>
                 <div>
                   <label className="lbl">{t('campo.genero')}</label>
@@ -775,6 +793,17 @@ export function Registro() {
                   </span>
                 </label>
                 {errors.consentError && <div className="err on">{t('registro.consent')}</div>}
+
+                {mutation.isError && (
+                  <div className="mt-2 p-3.5 bg-[#fdf2f2] border border-[#f8b4b4] rounded-xl text-[#9b1c1c] text-xs font-semibold flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{mutation.error?.message || t('registro.error')}</span>
+                  </div>
+                )}
               </div>
             </section>
           )}

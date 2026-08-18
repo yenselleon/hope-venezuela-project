@@ -13,6 +13,7 @@ export const EXPORT_COLUMNS = [
   { key: 'nombre', header: 'Nombre' },
   { key: 'cedula', header: 'Cédula' },
   { key: 'telefono', header: 'Teléfono' },
+  { key: 'email', header: 'Correo' },
   { key: 'profesion', header: 'Profesión' },
   { key: 'estado', header: 'Estado' },
   { key: 'municipio', header: 'Municipio' },

@@ -1613,9 +1613,27 @@ select.admin-btn {
 /* ── Custom Grid Layout for Inventory (Fase 3) ── */
 .admin-inv-grid {
   display: grid;
-  grid-template-columns: 1.7fr 1fr .8fr 1.1fr .8fr;
+  grid-template-columns: 1.5fr 1fr 1.4fr .8fr 1fr .8fr;
   gap: 12px;
   align-items: center;
+}
+
+@media (max-width: 900px) {
+  .admin-inv-grid {
+    grid-template-columns: 1.5fr 1.3fr .8fr .8fr !important;
+  }
+}
+
+@media (max-width: 580px) {
+  .admin-inv-grid {
+    grid-template-columns: 1.5fr .8fr auto !important;
+  }
+  .admin-col-hide-mobile {
+    display: none !important;
+  }
+  .admin-only-mobile {
+    display: flex !important;
+  }
 }
 
 .admin-row {

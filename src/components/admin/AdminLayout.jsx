@@ -238,6 +238,7 @@ export default function AdminLayout() {
 
   const handleNav = useCallback(
     (view) => {
+      setSearchQuery('');
       const routes = {
         dashboard: '/admin',
         voluntarios: '/admin/voluntarios',
@@ -251,7 +252,7 @@ export default function AdminLayout() {
       };
       navigate(routes[view] || '/admin');
     },
-    [navigate]
+    [navigate, setSearchQuery]
   );
 
   const toggleLang = useCallback(() => {
@@ -409,6 +410,7 @@ export default function AdminLayout() {
               id="topbar-zone-filter"
             >
               <option value="Todas">{t('admin.filter.zona.all')}</option>
+              <option value="Distrito Capital · Caracas">{t('admin.filter.zona.caracas')}</option>
               <option value="Vargas · La Guaira">{t('admin.filter.zona.vargas')}</option>
               <option value="Miranda · San Antonio">{t('admin.filter.zona.sanantonio')}</option>
               <option value="Miranda · Los Teques">{t('admin.filter.zona.losteques')}</option>
