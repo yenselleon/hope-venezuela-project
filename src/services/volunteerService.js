@@ -23,11 +23,16 @@ function mapFormToRow(formData) {
     pais: step1.pais?.trim() || null,
 
     // Step 2
-    areas: step2.areas || [],
+    areas: (step2.areas || []).map((a) =>
+      a === 'Otra área de apoyo' && step2.otraArea?.trim()
+        ? `Otra: ${step2.otraArea.trim()}`
+        : a
+    ),
     especialidad_salud: step2.especialidad || null,
     grado_academico: step2.gradoAcademico || null,
     vehiculo: step2.vehiculo || null,
     certificaciones: step2.certificaciones || [],
+    otra_area: step2.otraArea?.trim() || null,
 
     // Step 3
     zonas: step3.zonas || [],

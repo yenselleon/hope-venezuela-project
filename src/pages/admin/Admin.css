@@ -853,14 +853,95 @@ select.admin-btn {
   border-radius: 14px;
 }
 
+.admin-drawer-section {
+  background: #fff;
+  border: 1px solid #e7eaef;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .admin-drawer-data-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .admin-drawer-data-label {
   font: 500 13px Inter, system-ui, sans-serif;
   color: #8a91a0;
+}
+
+/* ── Availability Weekly Grid ────────────────────────────── */
+.admin-avail-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.admin-avail-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  border-radius: 8px;
+  background: #f4f6f8;
+  border: 1px solid #e7eaef;
+  text-align: center;
+}
+
+.admin-avail-day.on {
+  background: #eef3fb;
+  border-color: #b5ceec;
+}
+
+.admin-avail-day-name {
+  font: 700 10px Inter, system-ui, sans-serif;
+  color: #6B7280;
+  text-transform: uppercase;
+}
+
+.admin-avail-day.on .admin-avail-day-name {
+  color: #003366;
+}
+
+.admin-avail-shifts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  min-height: 18px;
+}
+
+.admin-shift-badge {
+  font: 700 9px Inter, system-ui, sans-serif;
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.admin-shift-badge-m {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-shift-badge-t {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.admin-shift-badge-n {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.admin-shift-badge-24h {
+  background: #dcfce7;
+  color: #166534;
 }
 
 /* ── Scrim (Backdrop) ──────────────────────────────────────── */

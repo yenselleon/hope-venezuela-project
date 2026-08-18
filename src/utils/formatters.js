@@ -62,7 +62,15 @@ export function buildStep1Summary(data) {
  * Construye el array de chips para el resumen del step 2.
  */
 export function buildStep2Chips(data) {
-  const chips = [...(data.areas ?? []), ...(data.certificaciones ?? [])];
+  const chips = [];
+  (data.areas ?? []).forEach((area) => {
+    if (area === 'Otra área de apoyo' && data.otraArea) {
+      chips.push(`Otra: ${data.otraArea}`);
+    } else {
+      chips.push(area);
+    }
+  });
+  (data.certificaciones ?? []).forEach((cert) => chips.push(cert));
   if (data.vehiculo) chips.push(`Vehículo: ${data.vehiculo}`);
   return chips;
 }
