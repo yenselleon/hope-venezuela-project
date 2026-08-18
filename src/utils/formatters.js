@@ -29,6 +29,19 @@ export function maskData(value, visibleChars = 2) {
 }
 
 /**
+ * Enmascara un correo electrónico: "maria.gonzalez@correo.com" → "m****z@correo.com"
+ */
+export function maskEmail(email) {
+  if (!email || typeof email !== 'string') return '—';
+  const [user, domain] = email.split('@');
+  if (!domain) return maskData(email, 2);
+  if (user.length <= 2) return `${user[0] || '*'}***@${domain}`;
+  const first = user[0];
+  const last = user[user.length - 1];
+  return `${first}****${last}@${domain}`;
+}
+
+/**
  * Formatea un número grande con separador de miles local (es-ES).
  * formatCount(1200) → "1.200"
  */
@@ -51,6 +64,7 @@ export function buildStep1Summary(data) {
   if (idParts.length) parts.push(idParts.join(' · '));
   if (data.profesion) parts.push(data.profesion);
   if (data.telefono) parts.push(`Tel. ${formatPhone(data.telefono)}`);
+  if (data.email) parts.push(data.email);
   const loc = data.extranjero
     ? (data.pais ? `Procedencia: ${data.pais}` : '')
     : [data.estado, data.municipio].filter(Boolean).join(' · ');
@@ -97,3 +111,21 @@ export function buildStep3Summary(data) {
   lines.push(`Turnos marcados: ${celdasActivas} · Duración: ${tiempo}`);
   return lines;
 }
+
+/**
+ * Compara si una zona o centro geográfico coincide con el filtro seleccionado.
+ */
+export function matchZone(zoneOrCenter, targetFilter) {
+  if (!targetFilter || targetFilter === 'Todas' || targetFilter === 'Todos') return true;
+  if (!zoneOrCenter) return false;
+  const zc = String(zoneOrCenter).toLowerCase();
+  const tf = String(targetFilter).toLowerCase();
+  if (zc === tf) return true;
+  if ((tf.includes('caracas') || tf.includes('capital')) && (zc.includes('caracas') || zc.includes('capital'))) return true;
+  if ((tf.includes('vargas') || tf.includes('guaira')) && (zc.includes('vargas') || zc.includes('guaira') || zc.includes('pariata') || zc.includes('misionera'))) return true;
+  if (tf.includes('san antonio') && (zc.includes('san antonio') || zc.includes('salia'))) return true;
+  if (tf.includes('los teques') && (zc.includes('los teques') || zc.includes('teques') || zc.includes('belizas'))) return true;
+  if ((tf.includes('aragua') || tf.includes('maracay')) && (zc.includes('aragua') || zc.includes('maracay') || zc.includes('robles'))) return true;
+  return zc.includes(tf) || tf.includes(zc);
+}
+

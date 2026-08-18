@@ -21,17 +21,7 @@ function getItemCenter(item) {
   if (item.centro) return item.centro;
   if (item.ubicacion) return item.ubicacion;
   if (item.centro_acopio) return item.centro_acopio;
-
-  const idStr = String(item.id || item.nombre || '');
-  let charSum = 0;
-  for (let i = 0; i < idStr.length; i++) charSum += idStr.charCodeAt(i);
-
-  const centers = [
-    'Vargas · Casa Misionera',
-    'Caracas · Centro Principal',
-    'Miranda · San Antonio',
-  ];
-  return centers[charSum % centers.length];
+  return 'Vargas · Casa Misionera';
 }
 
 const DEFAULT_STOCK = [
@@ -51,6 +41,28 @@ export default function AnaliticaPanel() {
 
   const [selectedCenter, setSelectedCenter] = useState('Todos');
 
+  // Obtener categorías maestras desde Supabase
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ['inventario_categorias'],
+    queryFn: () => inventarioService.getCategories(),
+    staleTime: 60_000,
+  });
+
+  const categories = useMemo(() => {
+    if (dbCategories.length > 0) {
+      return dbCategories.map((c) => {
+        const defaultMatch = CATEGORIAS.find((d) => d.value === c.slug);
+        return {
+          value: c.slug,
+          labelKey: defaultMatch?.labelKey || null,
+          label: c.nombre,
+          color: c.color || defaultMatch?.color || '#003366',
+        };
+      });
+    }
+    return CATEGORIAS;
+  }, [dbCategories]);
+
   // Obtener catálogo para analíticas vivas
   const { data: rawStockItems = [], isLoading } = useQuery({
     queryKey: ['inventario', { analytics: true }],
@@ -68,15 +80,20 @@ export default function AnaliticaPanel() {
     return stockItems.filter((item) => getItemCenter(item) === selectedCenter);
   }, [stockItems, selectedCenter]);
 
-  // Calcular totales e indicadores
+  // Calcular totales e indicadores dinámicos por categoría
   const chartData = useMemo(() => {
-    const counts = { agua: 0, alimentos: 0, medicinas: 0, higiene: 0, refugio: 0 };
+    const counts = {};
+    categories.forEach((cat) => {
+      counts[cat.value] = 0;
+    });
+
     filteredStockItems.forEach((i) => {
-      // Handle legacy or mapped keys
       let cat = i.categoria?.toLowerCase();
       if (cat === 'colchones') cat = 'refugio';
       if (counts[cat] !== undefined) {
         counts[cat] += i.cantidad || 0;
+      } else if (cat) {
+        counts[cat] = (counts[cat] || 0) + (i.cantidad || 0);
       }
     });
 
@@ -87,7 +104,7 @@ export default function AnaliticaPanel() {
       count: counts[key],
       pct: Math.round((counts[key] / total) * 100),
     }));
-  }, [filteredStockItems]);
+  }, [categories, filteredStockItems]);
 
   // Alertas activas (Stock bajo y vencimiento de lotes)
   const activeAlerts = useMemo(() => {

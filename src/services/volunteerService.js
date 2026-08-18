@@ -15,6 +15,7 @@ function mapFormToRow(formData) {
     cedula: step1.cedula?.trim(),
     edad: step1.edad ? parseInt(step1.edad, 10) : null,
     telefono: step1.telefono?.trim(),
+    email: step1.email?.trim()?.toLowerCase() || null,
     genero: step1.genero || null,
     estado: step1.estado || null,
     municipio: step1.municipio || null,
@@ -32,7 +33,6 @@ function mapFormToRow(formData) {
     grado_academico: step2.gradoAcademico || null,
     vehiculo: step2.vehiculo || null,
     certificaciones: step2.certificaciones || [],
-    otra_area: step2.otraArea?.trim() || null,
 
     // Step 3
     zonas: step3.zonas || [],
@@ -70,11 +70,24 @@ export const volunteerService = {
       .order('created_at', { ascending: false });
 
     if (filters.search) {
-      query = query.or(
-        `nombre.ilike.%${filters.search}%,cedula.ilike.%${filters.search}%`
-      );
+      const term = filters.search.trim().replace(/[,()]/g, '');
+      if (term) {
+        const digits = term.replace(/\D/g, '');
+        const conditions = [
+          `nombre.ilike.%${term}%`,
+          `profesion.ilike.%${term}%`,
+          `telefono.ilike.%${term}%`,
+          `email.ilike.%${term}%`,
+        ];
+        if (digits.length >= 2) {
+          conditions.push(`cedula.ilike.%${digits}%`);
+        } else {
+          conditions.push(`cedula.ilike.%${term}%`);
+        }
+        query = query.or(conditions.join(','));
+      }
     }
-    if (filters.zona) {
+    if (filters.zona && filters.zona !== 'Todas') {
       query = query.contains('zonas', [filters.zona]);
     }
     if (filters.estado_voluntario) {

@@ -18,6 +18,15 @@ const DEFAULT_CATEGORIAS = [
   { value: 'medicinas', labelKey: 'admin.supply.medicine', label: 'Medicinas', color: '#b06fb0' },
 ];
 
+function formatExpiryDate(dateStr) {
+  if (!dateStr) return '—';
+  const parts = String(dateStr).split('-');
+  if (parts.length < 2) return dateStr;
+  const year = parts[0];
+  const month = parts[1];
+  return `${month}/${year.slice(-2)}`;
+}
+
 export default function InventarioPanel() {
   const t = useI18nStore((s) => s.t);
   const lang = useI18nStore((s) => s.lang);
@@ -25,13 +34,13 @@ export default function InventarioPanel() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
-  // Categorías dinámicas
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIAS);
+  // Categorías persistidas en base de datos
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
-  // Búsqueda global reactiva desde el topbar
+  // Búsqueda global reactiva y filtro de zona desde el topbar
   const searchQuery = useUIStore((s) => s.searchQuery);
+  const selectedZoneFilter = useUIStore((s) => s.selectedZoneFilter);
 
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [alertFilter, setAlertFilter] = useState('Todas'); // 'Todas' | 'bajo' | 'vence'
@@ -48,23 +57,47 @@ export default function InventarioPanel() {
     nombre: '',
     categoria: 'agua',
     unidad: 'u',
-    cantidad: 0,
+    cantidad: '',
     stock_minimo: 10,
     lote: '',
     fecha_vencimiento: '',
     centro: 'Vargas · Casa Misionera',
   });
 
-  // 1. Obtener catálogo
+  // 1. Obtener catálogo de insumos reactivo a categoría, alertas, búsqueda y zona seleccionada
   const { data: stockItems = [], isLoading: loadingStock } = useQuery({
-    queryKey: ['inventario', { categoria: categoryFilter, alert: alertFilter, search: searchQuery }],
+    queryKey: ['inventario', { categoria: categoryFilter, alert: alertFilter, search: searchQuery, zona: selectedZoneFilter }],
     queryFn: () => inventarioService.getAll({
       categoria: categoryFilter === 'Todas' ? null : categoryFilter,
       alert: alertFilter === 'Todas' ? null : alertFilter,
       search: searchQuery || null,
+      zona: selectedZoneFilter,
     }),
     staleTime: 15_000,
   });
+
+  // 2. Obtener categorías persistidas desde Supabase
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ['inventario_categorias'],
+    queryFn: () => inventarioService.getCategories(),
+    staleTime: 60_000,
+  });
+
+  // Categorías normalizadas para UI
+  const categories = useMemo(() => {
+    if (dbCategories.length > 0) {
+      return dbCategories.map((c) => {
+        const defaultMatch = DEFAULT_CATEGORIAS.find((d) => d.value === c.slug);
+        return {
+          value: c.slug,
+          labelKey: defaultMatch?.labelKey || null,
+          label: c.nombre,
+          color: c.color || defaultMatch?.color || '#003366',
+        };
+      });
+    }
+    return DEFAULT_CATEGORIAS;
+  }, [dbCategories]);
 
   // Mutaciones
   const createItemMutation = useMutation({
@@ -74,6 +107,18 @@ export default function InventarioPanel() {
       queryClient.invalidateQueries({ queryKey: ['inventario'] });
       setIsDrawerOpen(false);
       resetNewItemForm();
+    },
+    onError: (err) => showToast(err.message),
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: ({ nombre }) => inventarioService.createCategory({ nombre }),
+    onSuccess: (newCat) => {
+      showToast(lang === 'es' ? `Categoría "${newCat.nombre}" creada` : `Category "${newCat.nombre}" created`);
+      queryClient.invalidateQueries({ queryKey: ['inventario_categorias'] });
+      setCategoryFilter(newCat.slug);
+      setNewCatName('');
+      setIsCategoryModalOpen(false);
     },
     onError: (err) => showToast(err.message),
   });
@@ -91,9 +136,9 @@ export default function InventarioPanel() {
   const resetNewItemForm = () => {
     setNewItem({
       nombre: '',
-      categoria: 'agua',
+      categoria: categories[0]?.value || 'agua',
       unidad: 'u',
-      cantidad: 0,
+      cantidad: '',
       stock_minimo: 10,
       lote: '',
       fecha_vencimiento: '',
@@ -107,7 +152,9 @@ export default function InventarioPanel() {
     if (!newItem.nombre.trim()) return;
     createItemMutation.mutate({
       ...newItem,
+      cantidad: parseInt(newItem.cantidad, 10) || 0,
       lote: newItem.lote.trim() || undefined,
+      usuario_email: user?.email || undefined,
     });
   };
 
@@ -115,18 +162,7 @@ export default function InventarioPanel() {
     e.preventDefault();
     const name = newCatName.trim();
     if (!name) return;
-    const val = name.toLowerCase().replace(/\s+/g, '_');
-    const newCat = {
-      value: val,
-      labelKey: null,
-      label: name,
-      color: '#003366',
-    };
-    setCategories((prev) => [...prev, newCat]);
-    setCategoryFilter(val);
-    showToast(lang === 'es' ? `Categoría "${name}" creada` : `Category "${name}" created`);
-    setNewCatName('');
-    setIsCategoryModalOpen(false);
+    createCategoryMutation.mutate({ nombre: name });
   };
 
   // Inline adjustment click-save logic
@@ -280,9 +316,10 @@ export default function InventarioPanel() {
         {/* Grid Header */}
         <div className="admin-inv-grid" style={{ padding: '12px 18px', borderBottom: '1px solid #eef1f4', background: '#fafbfc' }}>
           <span className="admin-th">{lang === 'es' ? 'Ítem' : 'Item'}</span>
-          <span className="admin-th col-hide">{lang === 'es' ? 'Categoría' : 'Category'}</span>
+          <span className="admin-th admin-col-hide">{lang === 'es' ? 'Categoría' : 'Category'}</span>
+          <span className="admin-th admin-col-hide-mobile">{lang === 'es' ? 'Centro de acopio' : 'Storage center'}</span>
           <span className="admin-th">{lang === 'es' ? 'Cantidad' : 'Quantity'}</span>
-          <span className="admin-th col-hide">{lang === 'es' ? 'Lote / vence' : 'Lot / expiry'}</span>
+          <span className="admin-th admin-col-hide">{lang === 'es' ? 'Lote / vence' : 'Lot / expiry'}</span>
           <span className="admin-th text-right">{lang === 'es' ? 'Estado' : 'Status'}</span>
         </div>
 
@@ -295,7 +332,13 @@ export default function InventarioPanel() {
           </div>
         ) : stockItems.length === 0 ? (
           <div className="p-12 text-center text-xs text-text-tertiary">
-            {lang === 'es' ? 'Sin insumos en esta categoría.' : 'No supplies in this category.'}
+            {lang === 'es'
+              ? (selectedZoneFilter && selectedZoneFilter !== 'Todas'
+                  ? `Sin insumos registrados para la zona "${selectedZoneFilter}".`
+                  : 'Sin insumos en esta categoría.')
+              : (selectedZoneFilter && selectedZoneFilter !== 'Todas'
+                  ? `No supplies registered for zone "${selectedZoneFilter}".`
+                  : 'No supplies in this category.')}
           </div>
         ) : (
           stockItems.map((item) => {
@@ -332,16 +375,37 @@ export default function InventarioPanel() {
                 className="admin-inv-grid admin-row"
                 style={{ padding: '12px 18px', borderBottom: '1px solid #eef1f4', ...rowBgStyle }}
               >
-                <div className="admin-td" style={{ fontWeight: '600', color: '#111827' }}>
-                  {item.nombre}
+                <div className="admin-td">
+                  <div style={{ fontWeight: '600', color: '#111827' }}>
+                    {item.nombre}
+                  </div>
+                  <div className="admin-only-mobile text-[11px] text-gray-500 flex items-center gap-1 mt-0.5" style={{ display: 'none' }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span className="truncate">{item.centro || 'Vargas · Casa Misionera'}</span>
+                  </div>
                 </div>
                 
-                <div className="admin-td col-hide" style={{ color: '#4b5563' }}>
+                <div className="admin-td admin-col-hide" style={{ color: '#4b5563' }}>
                   {(() => {
                     const found = categories.find((c) => c.value === item.categoria);
                     if (!found) return item.categoria;
                     return found.labelKey ? t(found.labelKey) : found.label;
                   })()}
+                </div>
+
+                <div className="admin-td admin-col-hide-mobile" style={{ color: '#374151', fontSize: 13 }}>
+                  <span className="font-medium inline-flex items-center gap-1.5" title={item.centro || 'Vargas · Casa Misionera'}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span className="truncate max-w-[170px] lg:max-w-[220px]">
+                      {item.centro || 'Vargas · Casa Misionera'}
+                    </span>
+                  </span>
                 </div>
 
                 <div className="admin-td">
@@ -374,12 +438,8 @@ export default function InventarioPanel() {
                   )}
                 </div>
 
-                <div className="admin-td col-hide" style={isExpiring ? { color: '#b02a24', fontWeight: '600' } : { color: '#4b5563' }}>
-                  {item.lote || 'L-1001'} ·{' '}
-                  {item.fecha_vencimiento 
-                    ? new Date(item.fecha_vencimiento).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { month: '2-digit', year: '2-digit' })
-                    : '—'
-                  }
+                <div className="admin-td admin-col-hide" style={isExpiring ? { color: '#b02a24', fontWeight: '600' } : { color: '#4b5563' }}>
+                  {item.lote || 'L-1001'} · {formatExpiryDate(item.fecha_vencimiento)}
                 </div>
 
                 <div className="text-right">
@@ -462,10 +522,10 @@ export default function InventarioPanel() {
                     <input
                       type="number"
                       min="0"
-                      required
+                      placeholder="0"
                       className="fld bg-[#faf9f6]"
                       value={newItem.cantidad}
-                      onChange={(e) => setNewItem({ ...newItem, cantidad: parseInt(e.target.value, 10) || 0 })}
+                      onChange={(e) => setNewItem({ ...newItem, cantidad: e.target.value })}
                     />
                   </div>
                   <div>

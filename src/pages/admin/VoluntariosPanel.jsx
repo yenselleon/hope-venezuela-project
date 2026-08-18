@@ -5,15 +5,18 @@
 // Matches Admin.dc.html design pixel-by-pixel.
 // ──────────────────────────────────────────────────────────
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { useI18nStore } from '@/stores/useI18nStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useDebounce } from '@/hooks/useDebounce';
 import { volunteerService } from '@/services/volunteerService';
+import { maskEmail } from '@/utils/formatters';
 import { ExportModal } from '@/components/admin/ExportModal';
 import { AssignModal } from '@/components/admin/AssignModal';
+import { EditVolunteerModal } from '@/components/admin/EditVolunteerModal';
 import './Admin.css';
 
 const EMPTY_ARRAY = [];
@@ -37,9 +40,28 @@ function maskTelefono(tel) {
   return `${tel.slice(0, 4)}-•••••••`;
 }
 
+// ── Helper: format registration date ─────────────────────────
+function formatRegistrationDate(dateStr, lang = 'es') {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString(lang === 'es' ? 'es-VE' : 'en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 // ── Status pill ──────────────────────────────────────────────
 function StatusPill({ estado, t }) {
   if (estado === 'activo') return <span className="admin-pill admin-pill-ok">{t('admin.status.activo')}</span>;
+  if (estado === 'asignado') return <span className="admin-pill admin-pill-info">{t('admin.status.asignado')}</span>;
   if (estado === 'aprobado') return <span className="admin-pill admin-pill-info">{t('admin.status.aprobado')}</span>;
   if (estado === 'rechazado') return <span className="admin-pill admin-pill-crit">{t('admin.status.rechazado')}</span>;
   return <span className="admin-pill admin-pill-warn">{t('admin.status.pendiente')}</span>;
@@ -108,7 +130,7 @@ function parseAvailabilityMap(turnos) {
 }
 
 // ── Drawer Component ─────────────────────────────────────────
-function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onApprove, onReject, onAssign, t, isPending }) {
+function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onApprove, onReject, onAssign, onEdit, canEdit, t, isPending, lang }) {
   if (!volunteer) return null;
   const vol = volunteer;
   const ini = getInitials(vol.nombre);
@@ -140,10 +162,10 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
             <b style={{ font: '800 17px Inter, system-ui, sans-serif', color: '#111827', lineHeight: 1.2 }}>{vol.nombre}</b>
             {vol.profesion && (
-              <span style={{ font: '600 12.5px Inter', color: '#4b5563' }}>💼 {vol.profesion}</span>
+              <span style={{ font: '600 12.5px Inter', color: '#4b5563' }}>{vol.profesion}</span>
             )}
             {residenceText && (
-              <span style={{ font: '500 11.5px Inter', color: '#6B7280' }}>📍 {residenceText}</span>
+              <span style={{ font: '500 11.5px Inter', color: '#6B7280' }}>{residenceText}</span>
             )}
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>
               <StatusPill estado={vol.estado_voluntario} t={t} />
@@ -159,7 +181,7 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="admin-th">{t('admin.detail.sensitive')}</span>
             <button className="admin-btn admin-btn-ghost xs" onClick={onToggleReveal}>
-              {revealed ? '🙈 Ocultar' : '👁 Revelar'}
+              {revealed ? (t('admin.drawer.hide') || 'Ocultar') : (t('admin.drawer.reveal') || 'Revelar')}
             </button>
           </div>
           <div className="admin-drawer-data-row">
@@ -175,14 +197,24 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
             </span>
           </div>
           <div className="admin-drawer-data-row">
+            <span className="admin-drawer-data-label">{t('admin.drawer.email') || t('campo.email')}</span>
+            <span className={revealed ? 'admin-td' : 'admin-mask'}>
+              {revealed ? (vol.email || '—') : (vol.email ? maskEmail(vol.email) : '—')}
+            </span>
+          </div>
+          <div className="admin-drawer-data-row">
             <span className="admin-drawer-data-label">{t('admin.detail.ageGender')}</span>
             <span className="admin-td">{vol.edad ? `${vol.edad} años` : '—'} · {vol.genero || '—'}</span>
+          </div>
+          <div className="admin-drawer-data-row">
+            <span className="admin-drawer-data-label">{t('admin.detail.createdAt')}</span>
+            <span className="admin-td">{formatRegistrationDate(vol.created_at, lang)}</span>
           </div>
         </div>
 
         {/* Áreas y Capacidades */}
         <div className="admin-drawer-section">
-          <span className="admin-th">🧰 {t('admin.detail.areas')}</span>
+          <span className="admin-th">{t('admin.detail.areas')}</span>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {vol.areas?.map((a) => (
               <span className="admin-pill admin-pill-info" key={a}>{a}</span>
@@ -214,7 +246,7 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
           )}
           {vol.vehiculo && (
             <div className="admin-drawer-data-row">
-              <span className="admin-drawer-data-label">🚗 {t('admin.detail.vehiculo')}:</span>
+              <span className="admin-drawer-data-label">{t('admin.detail.vehiculo')}:</span>
               <span className="admin-td">{vol.vehiculo}</span>
             </div>
           )}
@@ -223,7 +255,7 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
         {/* Disponibilidad Semanal Grid */}
         <div className="admin-drawer-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="admin-th">📅 {t('admin.detail.disponibilidad')}</span>
+            <span className="admin-th">{t('admin.detail.disponibilidad')}</span>
             <span style={{ font: '500 10px Inter', color: '#8a91a0' }}>☀️ M  🌤️ T  🌙 N</span>
           </div>
 
@@ -254,7 +286,7 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
             {vol.duracion && (
               <div className="admin-drawer-data-row">
-                <span className="admin-drawer-data-label">⏳ {t('admin.detail.duracion')}:</span>
+                <span className="admin-drawer-data-label">{t('admin.detail.duracion')}:</span>
                 <span className="admin-td">
                   {vol.duracion} {vol.duracion_dias ? `(${vol.duracion_dias} días)` : ''}
                 </span>
@@ -262,25 +294,25 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
             )}
             {vol.movilizacion && (
               <div className="admin-drawer-data-row">
-                <span className="admin-drawer-data-label">🚶 {t('admin.detail.movilizacion')}:</span>
+                <span className="admin-drawer-data-label">{t('admin.detail.movilizacion')}:</span>
                 <span className="admin-td">{vol.movilizacion}</span>
               </div>
             )}
             {vol.hospedaje && (
               <div className="admin-drawer-data-row">
-                <span className="admin-drawer-data-label">🏠 {t('admin.detail.hospedaje')}:</span>
+                <span className="admin-drawer-data-label">{t('admin.detail.hospedaje')}:</span>
                 <span className="admin-td">{vol.hospedaje}</span>
               </div>
             )}
             {vol.apoyo_logistico && vol.apoyo_logistico.length > 0 && (
               <div className="admin-drawer-data-row">
-                <span className="admin-drawer-data-label">📦 {t('admin.detail.apoyoLogistico')}:</span>
+                <span className="admin-drawer-data-label">{t('admin.detail.apoyoLogistico')}:</span>
                 <span className="admin-td">{vol.apoyo_logistico.join(', ')}</span>
               </div>
             )}
             {vol.familia && vol.familia.length > 0 && (
               <div className="admin-drawer-data-row">
-                <span className="admin-drawer-data-label">👥 {t('admin.detail.familia')}:</span>
+                <span className="admin-drawer-data-label">{t('admin.detail.familia')}:</span>
                 <span className="admin-td">{vol.familia.join(', ')}</span>
               </div>
             )}
@@ -289,7 +321,7 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
 
         {/* Zone assigned */}
         <div className="admin-drawer-section">
-          <span className="admin-th">📍 {t('admin.detail.zoneAssigned')}</span>
+          <span className="admin-th">{t('admin.detail.zoneAssigned')}</span>
           <div
             className="admin-field cursor-pointer hover:border-navy transition-colors"
             style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
@@ -311,7 +343,7 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
       </div>
 
       {/* Footer actions */}
-      <div className="admin-drawer-footer">
+      <div className="admin-drawer-footer" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {vol.estado_voluntario === 'pendiente' ? (
           <>
             <button className="admin-btn admin-btn-ok sm" style={{ flex: 1 }} onClick={onApprove} disabled={isPending}>
@@ -320,11 +352,24 @@ function VolunteerDrawer({ volunteer, onClose, revealed, onToggleReveal, onAppro
             <button className="admin-btn admin-btn-no sm" style={{ flex: 1 }} onClick={onReject} disabled={isPending}>
               {t('admin.action.reject')}
             </button>
+            {canEdit && (
+              <button className="admin-btn admin-btn-ghost sm" style={{ flex: '1 1 100%' }} onClick={onEdit}>
+                {t('admin.editVolunteer.btn')}
+              </button>
+            )}
           </>
         ) : (
-          <button className="admin-btn admin-btn-ghost sm" style={{ flex: 1 }} onClick={onAssign}>
-            {t('admin.action.editStatus')}
-          </button>
+          <>
+            {canEdit ? (
+              <button className="admin-btn admin-btn-ghost sm" style={{ flex: 1 }} onClick={onEdit}>
+                {t('admin.editVolunteer.btn')}
+              </button>
+            ) : (
+              <button className="admin-btn admin-btn-ghost sm" style={{ flex: 1 }} onClick={onAssign}>
+                {t('admin.action.editStatus')}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -340,25 +385,38 @@ const FILTER_CHIPS = [
   { key: 'cert', type: 'cert', value: 'cert', label: '★ Certificados' },
   { key: 'estado-pendiente', type: 'estado', value: 'pendiente', label: 'Estado: pendiente' },
   { key: 'estado-activo', type: 'estado', value: 'activo', label: 'Estado: activo' },
+  { key: 'estado-asignado', type: 'estado', value: 'asignado', label: 'Estado: asignado' },
 ];
 
 // ── Main Panel ───────────────────────────────────────────────
 export default function VoluntariosPanel() {
   const t = useI18nStore((s) => s.t);
+  const lang = useI18nStore((s) => s.lang);
   const showToast = useUIStore((s) => s.showToast);
   const role = useAuthStore((s) => s.role);
+  const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
+  const canEdit = isSuperAdmin || role === 'admin' || role === 'super_admin';
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const location = useLocation();
+
+  const searchQuery = useUIStore((s) => s.searchQuery);
+  const selectedZoneFilter = useUIStore((s) => s.selectedZoneFilter);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Local state
   const [activeFilters, setActiveFilters] = useState({});
   const [selectedId, setSelectedId] = useState(() => location.state?.openDrawer || null);
   const [revealed, setRevealed] = useState(false);
   const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Reset page when filters or search change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchQuery, selectedZoneFilter]);
 
   // Toggle filter chip
   const toggleFilter = useCallback((key) => {
@@ -366,7 +424,7 @@ export default function VoluntariosPanel() {
     setPage(1);
   }, []);
 
-  // Build query filters from active chips
+  // Build query filters from active chips and topbar controls
   const queryFilters = useMemo(() => {
     const f = { page, pageSize: 15 };
     // Area filter (take first active area)
@@ -380,10 +438,16 @@ export default function VoluntariosPanel() {
     // Status filter
     const activeStatus = FILTER_CHIPS.filter((c) => c.type === 'estado' && activeFilters[c.key]);
     if (activeStatus.length > 0) f.estado_voluntario = activeStatus[0].value;
-    // Search
-    if (searchTerm.trim()) f.search = searchTerm.trim();
+    // Zone filter from topbar
+    if (selectedZoneFilter && selectedZoneFilter !== 'Todas') {
+      f.zona = selectedZoneFilter;
+    }
+    // Search query from topbar
+    if (debouncedSearchQuery.trim()) {
+      f.search = debouncedSearchQuery.trim();
+    }
     return f;
-  }, [activeFilters, page, searchTerm]);
+  }, [activeFilters, page, debouncedSearchQuery, selectedZoneFilter]);
 
   // Fetch volunteers
   const { data: volResult, isLoading, isError } = useQuery({
@@ -468,12 +532,6 @@ export default function VoluntariosPanel() {
     setShowExportModal(true);
   }, [volunteers]);
 
-  // Listen for topbar search input changes
-  const handleSearch = useCallback((e) => {
-    setSearchTerm(e.target.value);
-    setPage(1);
-  }, []);
-
   // Page buttons
   const pageNumbers = useMemo(() => {
     const pages = [];
@@ -500,17 +558,6 @@ export default function VoluntariosPanel() {
               </button>
             )}
           </div>
-        </div>
-
-        {/* Search (visible on mobile since topbar search hides) */}
-        <div className="admin-top-search" style={{ display: 'none' }}>
-          <input
-            className="admin-field"
-            placeholder={t('admin.search')}
-            value={searchTerm}
-            onChange={handleSearch}
-            style={{ height: 38, paddingLeft: 34, fontSize: 13 }}
-          />
         </div>
 
         {/* Filter chips */}
@@ -650,8 +697,20 @@ export default function VoluntariosPanel() {
           onApprove={handleApprove}
           onReject={handleReject}
           onAssign={() => setShowAssignModal(true)}
+          onEdit={() => setShowEditModal(true)}
+          canEdit={canEdit}
           t={t}
           isPending={updateMutation.isPending}
+          lang={lang}
+        />
+      )}
+
+      {/* ── Edit Volunteer Modal ── */}
+      {showEditModal && selectedVol && (
+        <EditVolunteerModal
+          key={selectedVol.id}
+          volunteer={selectedVol}
+          onClose={() => setShowEditModal(false)}
         />
       )}
 
