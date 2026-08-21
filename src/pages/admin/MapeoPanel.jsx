@@ -231,14 +231,21 @@ export default function MapeoPanel() {
   const handleQuickAssign = (volId, zoneName) => {
     assignMutation.mutate({
       id: volId,
-      updates: { zona_asignada: zoneName },
+      updates: {
+        zona_asignada: zoneName,
+        estado_voluntario: 'asignado',
+      },
     });
   };
 
   const handleRemoveAssign = (volId) => {
     assignMutation.mutate({
       id: volId,
-      updates: { zona_asignada: null },
+      updates: {
+        zona_asignada: null,
+        turno_asignado: null,
+        estado_voluntario: 'activo',
+      },
     });
   };
 
@@ -447,14 +454,14 @@ export default function MapeoPanel() {
                         <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
                           <div className="text-xs font-bold text-text-primary truncate">{vol.nombre}</div>
                           <span style={{ fontSize: 10, color: '#6b7280' }}>
-                            {(vol.areas || ['General']).join(', ')} {selectedZone === 'Sin Asignar' ? '· sin zona' : '· activo'}
+                            {(vol.areas || ['General']).join(', ')} {selectedZone === 'Sin Asignar' ? '· sin zona' : '· asignado'}
                           </span>
                         </div>
                         {selectedZone === 'Sin Asignar' ? (
                           <span className="admin-pill admin-pill-warn" style={{ fontSize: 9.5 }}>Sin asignar</span>
                         ) : (
                           <>
-                            <span className="admin-pill admin-pill-ok" style={{ fontSize: 9.5 }}>Activo</span>
+                            <span className="admin-pill admin-pill-info" style={{ fontSize: 9.5 }}>Asignado</span>
                             <button
                               onClick={() => handleRemoveAssign(vol.id)}
                               style={{ border: 0, background: 'none', color: '#c0413b', cursor: 'pointer', fontSize: 12, padding: '0 4px' }}

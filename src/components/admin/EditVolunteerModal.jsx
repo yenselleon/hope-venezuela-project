@@ -145,6 +145,16 @@ export function EditVolunteerModal({ volunteer, onClose, onSuccess }) {
 
   const updateMutation = useMutation({
     mutationFn: async () => {
+      let finalEstado = estadoVoluntario;
+      const targetZone = zonaAsignada?.trim() || null;
+      if (targetZone) {
+        if (finalEstado === 'activo' || finalEstado === 'pendiente') {
+          finalEstado = 'asignado';
+        }
+      } else if (finalEstado === 'asignado') {
+        finalEstado = 'activo';
+      }
+
       const payload = {
         nombre: nombre.trim(),
         cedula: cedula.trim(),
@@ -170,8 +180,8 @@ export function EditVolunteerModal({ volunteer, onClose, onSuccess }) {
         hospedaje: hospedaje || null,
         apoyo_logistico: apoyoLogistico,
         familia,
-        estado_voluntario: estadoVoluntario,
-        zona_asignada: zonaAsignada || null,
+        estado_voluntario: finalEstado,
+        zona_asignada: targetZone,
         turno_asignado: turnoAsignado || null,
         notas_admin: notasAdmin.trim() || null,
       };
@@ -711,7 +721,15 @@ export function EditVolunteerModal({ volunteer, onClose, onSuccess }) {
                   </label>
                   <select
                     value={zonaAsignada}
-                    onChange={(e) => setZonaAsignada(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setZonaAsignada(val);
+                      if (val && (estadoVoluntario === 'activo' || estadoVoluntario === 'pendiente')) {
+                        setEstadoVoluntario('asignado');
+                      } else if (!val && estadoVoluntario === 'asignado') {
+                        setEstadoVoluntario('activo');
+                      }
+                    }}
                     className="h-9 px-2.5 border border-[#d1d5db] rounded-lg text-xs bg-white focus:outline-none focus:border-[#1b365d]"
                   >
                     <option value="">{t('admin.table.sinAsignar')}</option>
