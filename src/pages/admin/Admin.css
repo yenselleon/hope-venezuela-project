@@ -1610,23 +1610,24 @@ select.admin-btn {
   }
 }
 
-/* ── Custom Grid Layout for Inventory (Fase 3) ── */
+/* ── Custom Grid Layout for Inventory (Fase 3 & 4) ── */
 .admin-inv-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1.4fr .8fr 1fr .8fr;
+  grid-template-columns: 1.5fr 1fr 1.3fr .8fr 1fr .8fr 108px;
   gap: 12px;
   align-items: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .admin-inv-grid {
-    grid-template-columns: 1.5fr 1.3fr .8fr .8fr !important;
+    grid-template-columns: 1.4fr 1.2fr .8fr .8fr 100px !important;
   }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 640px) {
   .admin-inv-grid {
-    grid-template-columns: 1.5fr .8fr auto !important;
+    grid-template-columns: 1.4fr .8fr auto 96px !important;
+    gap: 8px;
   }
   .admin-col-hide-mobile {
     display: none !important;
@@ -1636,8 +1637,29 @@ select.admin-btn {
   }
 }
 
+/* ── Custom Grid Layout for Movements History (Auditoría) ── */
+.admin-mov-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr .8fr .7fr 1.3fr 1.2fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 960px) {
+  .admin-mov-grid {
+    grid-template-columns: 1fr 1.3fr .8fr .7fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-mov-grid {
+    grid-template-columns: .9fr 1.1fr .7fr .6fr !important;
+    gap: 8px;
+  }
+}
+
 .admin-row {
-  cursor: pointer;
+  cursor: default;
   transition: .12s;
 }
 
@@ -1647,6 +1669,81 @@ select.admin-btn {
 
 .admin-row.sel {
   background: #eef3fb;
+}
+
+/* Action buttons on rows */
+.admin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e7eaef;
+  background: #fff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.admin-action-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.admin-action-btn--delete:hover {
+  background: #fff5f4;
+  color: #b02a24;
+  border-color: #fca5a5;
+}
+
+.admin-action-btn--disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Category Manager Items */
+.admin-cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e7eaef;
+  background: #fafbfc;
+  transition: .15s;
+}
+
+.admin-cat-item:hover {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.admin-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.admin-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 99px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform .15s ease;
+}
+
+.admin-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.admin-color-swatch.active {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px #fff inset;
 }
 
 /* ── Segmented Control (Mapa / Lista) ── */

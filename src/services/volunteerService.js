@@ -46,6 +46,28 @@ function mapFormToRow(formData) {
   };
 }
 
+/**
+ * Normaliza la coherencia entre zona_asignada y estado_voluntario
+ */
+function normalizeVolunteerRow(row) {
+  if (!row) return row;
+  let estado = row.estado_voluntario;
+  const hasZone = !!(row.zona_asignada && String(row.zona_asignada).trim());
+
+  // Si tiene zona asignada y su estado era activo o aprobado, su estado operativo es 'asignado'
+  if (hasZone && (estado === 'activo' || estado === 'aprobado')) {
+    estado = 'asignado';
+  } else if (!hasZone && estado === 'asignado') {
+    // Si no tiene zona asignada pero quedó marcado como asignado, normalizar a 'activo'
+    estado = 'activo';
+  }
+
+  return {
+    ...row,
+    estado_voluntario: estado,
+  };
+}
+
 export const volunteerService = {
   /**
    * Crea un nuevo voluntario (formulario público, usa anon key).
@@ -108,7 +130,7 @@ export const volunteerService = {
     if (error) throw new Error(error.message);
 
     return {
-      data: data || [],
+      data: (data || []).map(normalizeVolunteerRow),
       total: count || 0,
       page,
       pageSize,
@@ -127,22 +149,31 @@ export const volunteerService = {
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+    return normalizeVolunteerRow(data);
   },
 
   /**
    * Actualiza un voluntario (asignación, cambio de estado, notas).
    */
   update: async (id, updates) => {
+    const payload = { ...updates };
+    if (payload.zona_asignada !== undefined && payload.estado_voluntario === undefined) {
+      if (payload.zona_asignada && String(payload.zona_asignada).trim()) {
+        payload.estado_voluntario = 'asignado';
+      } else {
+        payload.estado_voluntario = 'activo';
+      }
+    }
+
     const { data, error } = await supabase
       .from('voluntarios')
-      .update(updates)
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+    return normalizeVolunteerRow(data);
   },
 
   /**
