@@ -56,9 +56,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const callerRole =
-      caller.user_metadata?.role ||
-      caller.app_metadata?.role;
+    // Solo app_metadata: user_metadata lo puede editar el propio usuario autenticado
+    // (supabase.auth.updateUser), así que nunca debe decidir autorización.
+    const callerRole = caller.app_metadata?.role;
 
     if (callerRole !== 'super_admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
@@ -95,9 +95,10 @@ Deno.serve(async (req: Request) => {
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       email_confirm: false, // Requiere que el usuario confirme su email
+      // "role" solo va en app_metadata (el usuario no puede editarlo). "nombre" es
+      // metadata de perfil no sensible, sí puede vivir en user_metadata.
       user_metadata: {
         nombre,
-        role,
       },
       app_metadata: {
         role,

@@ -27,7 +27,9 @@ export const useAuthStore = create((set, get) => ({
     if (session?.user) {
       set({
         user: session.user,
-        role: session.user.user_metadata?.role || session.user.app_metadata?.role || 'coordinador',
+        // Solo app_metadata: user_metadata lo puede editar el propio usuario autenticado
+        // (supabase.auth.updateUser), así que nunca debe decidir el rol/autorización.
+        role: session.user.app_metadata?.role || 'coordinador',
         isAuthenticated: true,
         isLoading: false,
       });
